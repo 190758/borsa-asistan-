@@ -19,23 +19,29 @@ secilen_hisse = st.selectbox("Analiz Edilecek Hisseyi Seçin:", hisse_listesi)
 if st.button("Olasılık ve Tarih Analizini Oluştur"):
     with st.spinner("Borsa İstanbul verileri çekiliyor ve zaman çizgisi hesaplanıyor..."):
         
-        # Güvenli Veri Çekme Fonksiyonu
-        df = None
-        for i in range(3):
+        # Yahoo Finance Gelişmiş Güvenli Veri Çekme Fonksiyonu
+        df = pd.DataFrame()
+        for deneme in range(4):
             try:
-                ticker = yf.Ticker(secilen_hisse)
-                df = ticker.history(period="1y")
-                if not df.empty:
+                # yf.download Streamlit Cloud üzerinde yf.Ticker'a göre çok daha kararlıdır
+                df = yf.download(secilen_hisse, period="1y", interval="1d", progress=False)
+                if not df.empty and len(df) > 10:
                     break
             except Exception:
-                time.sleep(1)
+                time.sleep(1.5)
 
-        if df is not None and not df.empty and len(df) > 10:
-            son_fiyat = float(df['Close'].iloc[-1])
+        if not df.empty and len(df) > 10:
+            # MultiIndex sütun yapısı kontrolü
+            if isinstance(df.columns, pd.MultiIndex):
+                close_prices = df['Close'][secilen_hisse]
+            else:
+                close_prices = df['Close']
+                
+            son_fiyat = float(close_prices.iloc[-1])
             bugun = datetime.now()
             
             # Günlük Getiri ve Volatilite Hesabı
-            returns = df['Close'].pct_change().dropna()
+            returns = close_prices.pct_change().dropna()
             volatility = float(returns.std())
             
             # 90 Günlük Zaman Çizgisi Oluşturma
@@ -111,4 +117,4 @@ if st.button("Olasılık ve Tarih Analizini Oluştur"):
             )
             
         else:
-            st.error("Veri çekme sırasında bağlantı gecikmesi yaşandı. Lütfen 'Olasılık ve Tarih Analizini Oluştur' butonuna tekrar basın.")
+            st.error("Veri çekme sırasında gecikme yaşandı. Lütfen 3-5 saniye bekleyip 'Olasılık ve Tarih Analizini Oluştur' butonuna tekrar basın.")
