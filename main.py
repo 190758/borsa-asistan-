@@ -54,16 +54,33 @@ def get_bist_tickers():
   ]
   all_tickers = sorted(
       list(
-          set(top_tickers + ["GARAN", "AKBNK", "YKBNK", "SAHOL", "PETKM", "PGSU"])
+          set(
+              top_tickers
+              + [
+                  "GARAN",
+                  "AKBNK",
+                  "YKBNK",
+                  "SAHOL",
+                  "PETKM",
+                  "PGSUS",
+                  "DOAS",
+                  "TTKOM",
+                  "TCELL",
+              ]
+          )
       )
   )
   return top_tickers, all_tickers
 
 
 # ---------------------------------------------------------
-# 2. X (TWITTER) FORMATLI TEMALI PNG TABLO ÜRETİCİ
+# 2. X (TWITTER) FORMATLI TEMALI PNG TABLO ÜRETİCİ (GÜVENLİ)
 # ---------------------------------------------------------
 def generate_x_table_image(df, title="BIST Finansal Analiz Tablosu"):
+  # Boş DataFrame gelirse çökmesini önlemek için kontrol
+  if df.empty:
+    df = pd.DataFrame({"Uyarı": ["Gösterilecek Veri Bulunamadı"]})
+
   fig, ax = plt.subplots(figsize=(12, max(4, len(df) * 0.7)), dpi=300)
   fig.patch.set_facecolor("#15202B")  # X Koyu Tema Arka Planı
   ax.set_facecolor("#15202B")
@@ -132,7 +149,7 @@ def get_stock_data(symbol):
     return pd.DataFrame(), {}
 
 
-# Dolar Kuru
+# Dolar Kuru Çekimi
 df_usd, _ = get_stock_data("USDTRY=X")
 usd_try = (
     float(df_usd["Close"].iloc[-1])
@@ -169,7 +186,10 @@ with tab1:
   if st.button(f"🚀 {target_stock} Projeksiyon Analizini Başlat"):
     hist, info = get_stock_data(target_stock)
     if hist.empty:
-      st.error(f"❌ {target_stock} verisi çekilemedi.")
+      st.error(
+          f"❌ {target_stock} verisi çekilemedi. Şirket kodunun doğruluğunu"
+          " kontrol edin."
+      )
     else:
       close = hist["Close"]
       last_price = float(close.iloc[-1])
@@ -293,17 +313,25 @@ with tab2:
       progress.progress((idx + 1) / len(selected_multi))
 
     res_df = pd.DataFrame(rows)
-    st.dataframe(res_df, use_container_width=True)
 
-    img = generate_x_table_image(
-        res_df, title="BIST Seçili Hisseler Temel & Graham Analizi"
-    )
-    st.download_button(
-        label="📥 Tablo Görselini İndir (X Paylaşımı İçin)",
-        data=img,
-        file_name="bist_temel_analiz.png",
-        mime="image/png",
-    )
+    # Güvenli Kontrol: Sadece veri varsa tablo oluşturur
+    if not res_df.empty:
+      st.dataframe(res_df, use_container_width=True)
+
+      img = generate_x_table_image(
+          res_df, title="BIST Seçili Hisseler Temel & Graham Analizi"
+      )
+      st.download_button(
+          label="📥 Tablo Görselini İndir (X Paylaşımı İçin)",
+          data=img,
+          file_name="bist_temel_analiz.png",
+          mime="image/png",
+      )
+    else:
+      st.warning(
+          "⚠️ Seçilen hisseler için yfinance üzerinden veri çekilemedi. Lütfen"
+          " bağlantınızı kontrol edin veya farklı hisseler deneyin."
+      )
 
 # ---------------------------------------------------------
 # SEKME 3: X PAYLAŞIM KART ÜRETECİ (@trader_gandalf)
@@ -312,7 +340,7 @@ with tab3:
   st.header("🖼️ Özel X Paylaşım Tablosu Üreticisi")
   st.info(
       "Bu bölümde X (@trader_gandalf) hesabınızda paylaşmak üzere özel"
-      " verilerle anında tablo üretebilirsiniz."
+      " verilerle anında görsel üretebilirsiniz."
   )
 
   table_title = st.text_input(
