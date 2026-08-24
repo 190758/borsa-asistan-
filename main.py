@@ -63,7 +63,20 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
                 high_prices, low_prices = df['High'], df['Low']
                 volume = df['Volume']
 
-            usd_kur = float(df_usd['Close'].iloc[-1]) if not df_usd.empty else 34.0
+           # USD/TRY Kurunu Güvenli Şekilde Çekme ve Dönüştürme
+if not df_usd.empty and 'Close' in df_usd.columns:
+    last_val = df_usd['Close'].iloc[-1]
+    
+    # Eğer gelen değer bir pandas Series ise ilk elemanını al
+    if hasattr(last_val, 'values'):
+        last_val = last_val.values[0]
+        
+    try:
+        usd_kur = float(last_val)
+    except (ValueError, TypeError):
+        usd_kur = 34.0
+else:
+    usd_kur = 34.0
             son_fiyat = float(close_prices.iloc[-1])
             son_yuksek = float(high_prices.iloc[-1])
             son_dusuk = float(low_prices.iloc[-1])
