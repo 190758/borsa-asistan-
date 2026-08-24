@@ -29,20 +29,18 @@ secilen_hisse = st.selectbox("Analiz Edilecek Şirketi Seçin:", hisse_listesi)
 if st.button("Kapsamlı Mum & Potansiyel Analizini Başlat"):
     with st.spinner("Piyasa verileri çekiliyor, mum grafikleri ve potansiyel skorları hesaplanıyor..."):
         
-        # 1. Veri Çekme Fonksiyonu
-        @st.cache_data(ttl=300)
+        # 1. Veri Çekme Fonksiyonu (Serileştirme Hatası Çözüldü)
         def veri_getir(symbol):
             for _ in range(3):
                 try:
                     df_raw = yf.download(symbol, period="1y", interval="1d", progress=False)
-                    tick = yf.Ticker(symbol)
                     if not df_raw.empty and len(df_raw) > 20:
-                        return df_raw, tick
+                        return df_raw
                 except Exception:
                     time.sleep(1)
-            return pd.DataFrame(), None
+            return pd.DataFrame()
 
-        df, ticker_obj = veri_getir(secilen_hisse)
+        df = veri_getir(secilen_hisse)
 
         if not df.empty and len(df) > 20:
             # MultiIndex sütun düzeltmesi
@@ -160,12 +158,12 @@ if st.button("Kapsamlı Mum & Potansiyel Analizini Başlat"):
             })
             st.table(uzun_vade_df)
 
-            # --- BÖLÜM 4: TÜM HİSSELERİN POTANSİYEL TARMASI VE EN İYİ HİSSE ANALİZİ ---
+            # --- BÖLÜM 4: TÜM HİSSELERİN POTANSİYEL TARAMASI VE EN İYİ HİSSE ANALİZİ ---
             st.subheader("🌟 BIST Yapay Zekâ Potansiyel Taraması & En Yüksek Potansiyelli Hisse")
             
             potansiyel_skorlari = {}
             for h in hisse_listesi:
-                d_temp, _ = veri_getir(h)
+                d_temp = veri_getir(h)
                 if not d_temp.empty and len(d_temp) > 20:
                     cp = d_temp['Close'][h] if isinstance(d_temp.columns, pd.MultiIndex) else d_temp['Close']
                     # RSI ve Trend Skoru
@@ -174,20 +172,21 @@ if st.button("Kapsamlı Mum & Potansiyel Analizini Başlat"):
                     l = (-d_r.where(d_r < 0, 0)).rolling(14).mean()
                     r_val = float((100 - (100 / (1 + (g / l)))).iloc[-1])
                     
-                    # Skorlama: RSI düşükse + puan, SMA50 > SMA200 ise + puan
+                    # Skorlama
                     skor = (70 - r_val) * 0.5 + (15 if cp.iloc[-1] > cp.rolling(50).mean().iloc[-1] else 0)
                     potansiyel_skorlari[h] = skor
 
-            en_iyi_hisse = max(potansiyel_skorlari, key=potansiyel_skorlari.get)
-            en_iyi_kodu = en_iyi_hisse.replace('.IS', '')
+            if potansiyel_skorlari:
+                en_iyi_hisse = max(potansiyel_skorlari, key=potansiyel_skorlari.get)
+                en_iyi_kodu = en_iyi_hisse.replace('.IS', '')
 
-            st.success(f"🏆 **Yapay Zekânın Şu An En Yüksek Potansiyelli Gördüğü Hisse: {en_iyi_kodu}**")
-            st.info(
-                f"**{en_iyi_kodu} Detaylı Analiz Özeti:**\n\n"
-                f"• **Temel Yatırım Hikâyesi:** {SIRKET_HIKAYELERI[en_iyi_hisse]}\n"
-                f"• **Öne Çıkma Sebebi:** Teknik ortalamaların üzerindeki duruşu, ideal RSI seviyesi ve risk/ödül oranının uzun vadeli yükseliş trendini desteklemesi.\n"
-                f"• **Strateji Notu:** Kısa vadeli geri çekilmeler kademeli alım fırsatı olarak değerlendirilebilir."
-            )
+                st.success(f"🏆 **Yapay Zekânın Şu An En Yüksek Potansiyelli Gördüğü Hisse: {en_iyi_kodu}**")
+                st.info(
+                    f"**{en_iyi_kodu} Detaylı Analiz Özeti:**\n\n"
+                    f"• **Temel Yatırım Hikâyesi:** {SIRKET_HIKAYELERI[en_iyi_hisse]}\n"
+                    f"• **Öne Çıkma Sebebi:** Teknik ortalamaların üzerindeki duruşu, ideal RSI seviyesi ve risk/ödül oranının uzun vadeli yükseliş trendini desteklemelidir.\n"
+                    f"• **Strateji Notu:** Kısa vadeli geri çekilmeler kademeli alım fırsatı olarak değerlendirilebilir."
+                )
 
         else:
             st.error("Veri çekilemedi. Lütfen butona tekrar basarak yeniden deneyin.")
