@@ -9,8 +9,8 @@ import time
 # Sayfa Yapılandırması
 st.set_page_config(page_title="BIST Day-Trading & AI Komuta Merkezi", layout="wide")
 
-st.title("⚡ BIST Günlük Trade Komuta Merkezi & AI Tahmin Asistanı")
-st.caption("Anlık Al-Sat Sinyalleri, ATR Stop/Kâr Al Seviyeleri, Pivotlar, USD Grafik ve X (Twitter) Bülten Üretici")
+st.title("⚡ BIST Günlük Trade Komuta Merkezi & Temel Sağlık Analizi")
+st.caption("Al-Sat Sinyalleri, Temel Analiz Sağlık Skoru (F/K, PD/DD), ATR Stop/Kâr Al Seviyeleri ve X Bülten Üretici")
 
 # Şirket Temel Bilgileri
 SIRKET_HIKAYELERI = {
@@ -33,8 +33,8 @@ with col_yaz:
 girilen_kod = girilen_hisse if girilen_hisse else (secilen_hazir if secilen_hazir else "FROTO")
 hisse_symbol = f"{girilen_kod}.IS" if not girilen_kod.endswith(".IS") else girilen_kod
 
-if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
-    with st.spinner(f"{girilen_kod} ve USD/TRY verileri çekiliyor, günlük trade parametreleri hesaplanıyor..."):
+if st.button("🚀 Günlük Analizi ve Temel Sağlık Skorunu Hesapla"):
+    with st.spinner(f"{girilen_kod} verileri çekiliyor, temel ve teknik parametreler hesaplanıyor..."):
         
         # Veri Çekme Fonksiyonu
         def veri_getir(symbol):
@@ -49,6 +49,14 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
 
         df = veri_getir(hisse_symbol)
         df_usd = veri_getir("USDTRY=X")
+        
+        # Şirket Temel Analiz Verilerini Çekme (Ticker Info)
+        ticker_obj = yf.Ticker(hisse_symbol)
+        info_data = {}
+        try:
+            info_data = ticker_obj.info
+        except Exception:
+            info_data = {}
 
         if not df.empty and len(df) > 20:
             # MultiIndex Kontrolü ve Güvenli Veri Çekimi
@@ -57,11 +65,9 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
                 open_prices = df['Open'][hisse_symbol]
                 high_prices = df['High'][hisse_symbol]
                 low_prices = df['Low'][hisse_symbol]
-                volume = df['Volume'][hisse_symbol]
             else:
                 close_prices, open_prices = df['Close'], df['Open']
                 high_prices, low_prices = df['High'], df['Low']
-                volume = df['Volume']
 
             # USD Kuru Hesabı
             if not df_usd.empty and 'Close' in df_usd.columns:
@@ -70,7 +76,7 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
             else:
                 usd_kur = 34.0
 
-            # Fiyatları Güvenli Dönüştürme
+            # Fiyatları Dönüştürme
             val_close = close_prices.iloc[-1]
             val_high = high_prices.iloc[-1]
             val_low = low_prices.iloc[-1]
@@ -97,7 +103,7 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
 
             volatility = float(close_prices.pct_change().dropna().std())
 
-            # ATR (Average True Range) Hesabı
+            # ATR (Average True Range)
             tr1 = high_prices - low_prices
             tr2 = abs(high_prices - close_prices.shift())
             tr3 = abs(low_prices - close_prices.shift())
@@ -105,7 +111,41 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
             atr_val = tr.rolling(14).mean().iloc[-1]
             atr = float(atr_val.values[0] if hasattr(atr_val, 'values') else atr_val)
 
-            # Al-Sat Sinyal Puanı
+            # --- TEMEL ANALİZ SAĞLIK SKORU HESAPLAMA ---
+            fk = info_data.get('trailingPE', None)
+            pddd = info_data.get('priceToBook', None)
+            kar_marji = info_data.get('profitMargins', None)
+            roe = info_data.get('returnOnEquity', None)
+
+            temel_puan = 5  # Başlangıç nötr puanı
+            
+            # F/K Değerlendirmesi
+            if fk and fk > 0:
+                if fk < 8: temel_puan += 2
+                elif fk < 15: temel_puan += 1
+                elif fk > 30: temel_puan -= 1
+            
+            # PD/DD Değerlendirmesi
+            if pddd and pddd > 0:
+                if pddd < 1.5: temel_puan += 2
+                elif pddd < 3.0: temel_puan += 1
+                elif pddd > 6.0: temel_puan -= 1
+
+            # Özkaynak Kârlılığı (ROE)
+            if roe:
+                if roe > 0.30: temel_puan += 1
+                elif roe < 0: temel_puan -= 1
+
+            temel_puan = max(1, min(10, temel_puan)) # 1 ile 10 arasında sınırla
+
+            if temel_puan >= 8:
+                temel_durum = "🟢 ÇOK GÜÇLÜ FİNANSAL YAPI"
+            elif temel_puan >= 5:
+                temel_durum = "🟡 MAKUL / DENGELİ"
+            else:
+                temel_durum = "🔴 ZAYIF / RİSKLİ TEMEL VERİ"
+
+            # Teknik Sinyal
             al_sat_puan = 0
             if rsi < 35: al_sat_puan += 2
             elif rsi > 70: al_sat_puan -= 2
@@ -121,18 +161,37 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
             else:
                 sinyal_metni = "🔴 SAT / DÜZELTME"
 
-            # --- MODÜL 1: ÖZET METRİKLER & USD FİYAT ---
-            st.subheader(f"🚦 {girilen_kod} - Anlık Durum & USD Değeri")
+            # --- MODÜL 1: TEMEL SAĞLIK KARTI VE ANLIK DURUM ---
+            st.subheader(f"📊 {girilen_kod} - Temel Sağlık Skoru & Anlık Metrikler")
             m1, m2, m3, m4, m5 = st.columns(5)
             m1.metric("Son Fiyat (TL)", f"{son_fiyat:.2f} TL")
             m2.metric("Son Fiyat (USD)", f"${son_fiyat_usd:.2f}")
-            m3.metric("Sinyal", sinyal_metni)
-            m4.metric("RSI (14)", f"{rsi:.1f}")
-            m5.metric("Günlük Oynaklık (ATR)", f"±{atr:.2f} TL")
+            m3.metric("Temel Sağlık Skoru", f"{temel_puan} / 10", delta=temel_durum)
+            m4.metric("Teknik Sinyal", sinyal_metni)
+            m5.metric("RSI (14)", f"{rsi:.1f}")
 
-            # --- MODÜL 2: GÜN İÇİ ATR BAZLI RISK & KÂR YÖNETİMİ ---
+            # --- MODÜL 2: TEMEL ANALİZ DETAY TABLOSU ---
+            st.subheader("📋 Şirket Temel Analiz Göstergeleri")
+            fk_str = f"{fk:.2f}" if fk else "N/A"
+            pddd_str = f"{pddd:.2f}" if pddd else "N/A"
+            kar_marji_str = f"%{kar_marji*100:.1f}" if kar_marji else "N/A"
+            roe_str = f"%{roe*100:.1f}" if roe else "N/A"
+
+            temel_df = pd.DataFrame({
+                "Finansal Rasyo": ["F/K (Fiyat / Kazanç)", "PD/DD (Piyasa Değeri / Defter Değeri)", "Net Kâr Marjı", "Özkaynak Kârlılığı (ROE)"],
+                "Mevcut Değer": [fk_str, pddd_str, kar_marji_str, roe_str],
+                "İdeal Değer Aralığı": ["< 10-12 (Düşük F/K İyidir)", "< 2.0 - 3.0", "> %15 - %20", "> %25 - %30"],
+                "Yorum": [
+                    "Hissenin kârlılığına göre ucuzluğunu gösterir." if fk else "Veri bulunamadı",
+                    "Şirketin özvarlıklarına göre fiyatlama çarpanıdır." if pddd else "Veri bulunamadı",
+                    "Satışlardan kalan net kâr oranını ifade eder." if kar_marji else "Veri bulunamadı",
+                    "Şirketin özkaynaklarını ne verimlilikte kullandığını gösterir." if roe else "Veri bulunamadı"
+                ]
+            })
+            st.table(temel_df)
+
+            # --- MODÜL 3: GÜN İÇİ ATR BAZLI RISK & KÂR YÖNETİMİ ---
             st.subheader("🎯 Gün İçi Risk Yönetimi: Stop-Loss & Kâr Al Seviyeleri")
-            
             stop_loss = son_fiyat - (atr * 1.5)
             kar_al_1 = son_fiyat + (atr * 1.5)
             kar_al_2 = son_fiyat + (atr * 3.0)
@@ -142,7 +201,7 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
             c_tp1.warning(f"🟡 **Kâr Al 1 (İlk Hedef):** {kar_al_1:.2f} TL\n\n*(Getiri: %{((kar_al_1-son_fiyat)/son_fiyat)*100:.1f})*")
             c_tp2.success(f"🟢 **Kâr Al 2 (Ana Hedef):** {kar_al_2:.2f} TL\n\n*(Getiri: %{((kar_al_2-son_fiyat)/son_fiyat)*100:.1f})*")
 
-            # --- MODÜL 3: PİVOT NOKTALARI (DESTEK / DİRENÇ) ---
+            # --- MODÜL 4: PİVOT NOKTALARI ---
             st.subheader("📌 Günlük Pivot, Destek ve Direnç Seviyeleri")
             pivot = (son_yuksek + son_dusuk + son_fiyat) / 3
             r1 = (2 * pivot) - son_dusuk
@@ -157,9 +216,8 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
             })
             st.table(pivot_df)
 
-            # --- MODÜL 4: GELECEK 3 AYIN TAHMİNİ GRAFİĞİ ---
+            # --- MODÜL 5: GELECEK 3 AYIN TAHMİNİ GRAFİĞİ ---
             st.subheader("📅 Gelecek Ayların Fiyat Tahmin Grafiği (Önümüzdeki 90 Gün)")
-            
             gelecek_tarihler = [bugun + timedelta(days=i) for i in range(1, 91)]
             gunler = np.arange(1, 91)
             trend_egilimi = 0.0006 if al_sat_puan > 0 else -0.0003
@@ -175,29 +233,25 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
             fig.update_layout(template="plotly_dark", title=f"{girilen_kod} - 90 Günlük AI Fiyat Tahmini", height=450)
             st.plotly_chart(fig, use_container_width=True)
 
-            # --- MODÜL 5: X (TWITTER) İÇİN BÜLTEN ÜRETİCİ ---
-            st.subheader("📱 X (Twitter) İçin Günlük Analiz Bülteni Üretici")
-            st.caption("Aşağıdaki bülteni kopyalayarak doğrudan sosyal medya hesabınızda paylaşabilirsiniz:")
+            # --- MODÜL 6: X (TWITTER) İÇİN BÜLTEN ÜRETİCİ ---
+            st.subheader("📱 X (Twitter) İçin Analiz Bülteni Üretici")
+            tweet_metni = f"""📊 #{girilen_kod} Analiz Bülteni
 
-            tweet_metni = f"""📊 #{girilen_kod} Günlük BIST Trade Notları
-
-💰 Son Fiyat: {son_fiyat:.2f} TL (${son_fiyat_usd:.2f})
-🚦 Yapay Zekâ Sinyali: {sinyal_metni}
-📈 RSI (14): {rsi:.1f}
+💰 Fiyat: {son_fiyat:.2f} TL (${son_fiyat_usd:.2f})
+🏥 Temel Sağlık Skoru: {temel_puan}/10 ({temel_durum})
+🚦 Teknik Sinyal: {sinyal_metni} | RSI: {rsi:.1f}
 
 🎯 Gün İçi Seviyeler:
 • Stop-Loss: {stop_loss:.2f} TL
 • Denge (Pivot): {pivot:.2f} TL
-• Kâr Al 1: {kar_al_1:.2f} TL
-• Kâr Al 2: {kar_al_2:.2f} TL
+• Kâr Al 1: {kar_al_1:.2f} TL | Kâr Al 2: {kar_al_2:.2f} TL
 
 #BIST100 #Borsa #Hisse #{girilen_kod}"""
 
             st.code(tweet_metni, language="text")
 
-            # --- MODÜL 6: GENEL TARAMA & SIKIŞAN HİSSELER ---
-            st.subheader("🚀 BIST Hisse Taraması & Sıkışma / Hacim Durumları")
-            
+            # --- MODÜL 7: GENEL TARAMA ---
+            st.subheader("🚀 BIST Hisse Taraması & Sıkışma Durumları")
             potansiyel_listesi = []
             for h in SIRKET_HIKAYELERI.keys():
                 d_temp = veri_getir(f"{h}.IS")
@@ -206,12 +260,11 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
                     fiy_val = cp.iloc[-1]
                     fiy = float(fiy_val.values[0] if hasattr(fiy_val, 'values') else fiy_val)
                     
-                    # Sıkışma Kontrolü (Bollinger Genişliği)
                     ma20 = cp.rolling(20).mean()
                     std20 = cp.rolling(20).std()
                     bw_val = ((ma20 + 2*std20 - (ma20 - 2*std20)) / ma20).iloc[-1]
                     b_width = float(bw_val.values[0] if hasattr(bw_val, 'values') else bw_val)
-                    sikisma_durumu = "🔥 Sıkışma Var (Patlayabilir)" if b_width < 0.08 else "Normal"
+                    sikisma_durumu = "🔥 Sıkışma Var" if b_width < 0.08 else "Normal"
 
                     potansiyel_listesi.append({
                         "Hisse Kodu": h,
