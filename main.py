@@ -533,8 +533,6 @@ st.download_button(
     data=png_buffer,
     file_name="bist_finansal_ozet.png",
     mime="image/png",st.code(tweet, language="text")
-
-# PNG Tablo Oluşturma Fonksiyonu ve Kodları
 )
 def generate_table_image(df, title="Bilanço Özeti"):
     fig, ax = plt.subplots(figsize=(12, 6.75), dpi=300)
