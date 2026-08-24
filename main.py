@@ -404,7 +404,8 @@ with tab_bulten:
           data=png_buf_single,
           file_name=f"{sec_b}_trade_analiz.png",
           mime="image/png",
-      )import io
+      )
+        import io
 import time
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
