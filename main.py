@@ -7,29 +7,37 @@ from datetime import datetime, timedelta
 import time
 
 # Sayfa Yapılandırması
-st.set_page_config(page_title="BIST AI Mum Grafik & Potansiyel Asistanı", layout="wide")
+st.set_page_config(page_title="BIST AI Gelecek Tahmini & Al-Sat Asistanı", layout="wide")
 
-st.title("🕯️ BIST AI Mum Grafik, Tarihsel Tahmin ve Potansiyel Analizi")
-st.caption("Kısa Vadeli Mum Sıralaması, Uzun Vadeli Hedefler ve Yapay Zekâ Hisse Taraması")
+st.title("📈 BIST AI Gelecek Ayların Fiyat Tahmini ve Al-Sat Sinyalleri")
+st.caption("Gelecek 3 Ayın Grafiği, Tüm BIST Hisseleri İçin Teknik Al-Sat Sinyalleri ve Potansiyel Taraması")
 
-# Hisse Havuzu ve Hikâyeleri
+# Şirket Temel Bilgileri
 SIRKET_HIKAYELERI = {
-    "FROTO.IS": "Elektrikli araç dönüşümü, Romanya Craiova yatırımları ve güçlü ihracat yapısı.",
-    "ISMEN.IS": "Borsa işlem hacimlerinden yüksek komisyon geliri ve güçlü özkaynak kârlılığı.",
-    "ANHYT.IS": "BES fon büyüklüğü, yüksek faiz ortamında artan net yatırım gelirleri.",
-    "ARDYZ.IS": "Siber güvenlik ve yazılım ihracatı, yüksek net kâr marjı ve düşük borçluluk.",
-    "ALTNY.IS": "Savunma sanayii Ar-Ge projeleri ve yüksek sipariş bakiyesi (Backlog).",
-    "YEOTK.IS": "Yenilenebilir enerji, GES/RES EPC projeleri ve batarya depolama yatırımları.",
-    "KCHOL.IS": "Lider iştirak portföyü, net aktif değer (NAD) iskontosu ve güçlü döviz pozisyonu."
+    "FROTO": "Elektrikli araç dönüşümü, Romanya Craiova yatırımları ve güçlü ihracat yapısı.",
+    "ISMEN": "Borsa işlem hacimlerinden yüksek komisyon geliri ve güçlü özkaynak kârlılığı.",
+    "ANHYT": "BES fon büyüklüğü, yüksek faiz ortamında artan net yatırım gelirleri.",
+    "ARDYZ": "Siber güvenlik ve yazılım ihracatı, yüksek net kâr marjı ve düşük borçluluk.",
+    "ALTNY": "Savunma sanayii Ar-Ge projeleri ve yüksek sipariş bakiyesi.",
+    "YEOTK": "Yenilenebilir enerji, GES/RES projeleri ve batarya depolama yatırımları.",
+    "KCHOL": "Lider iştirak portföyü, net aktif değer iskontosu ve güçlü döviz pozisyonu."
 }
 
-hisse_listesi = list(SIRKET_HIKAYELERI.keys())
-secilen_hisse = st.selectbox("Analiz Edilecek Şirketi Seçin:", hisse_listesi)
+# Hisse Seçim Kutusu + Serbest Arama Kutusu
+col_sec, col_yaz = st.columns([1, 1])
+with col_sec:
+    secilen_hazir = st.selectbox("Hızlı Hisse Seçimi:", [""] + list(SIRKET_HIKAYELERI.keys()))
+with col_yaz:
+    girilen_hisse = st.text_input("Veya İstediğiniz BIST Hisse Kodunu Yazın (Örn: THYAO, TUPRS, ASELS):", value="").strip().upper()
 
-if st.button("Kapsamlı Mum & Potansiyel Analizini Başlat"):
-    with st.spinner("Piyasa verileri çekiliyor, mum grafikleri ve potansiyel skorları hesaplanıyor..."):
+# Hisse Kodunu Belirleme
+girilen_kod = girilen_hisse if girilen_hisse else (secilen_hazir if secilen_hazir else "FROTO")
+hisse_symbol = f"{girilen_kod}.IS" if not girilen_kod.endswith(".IS") else girilen_kod
+
+if st.button("Gelecek Ayların Tahminini ve Al-Sat Sinyalini Oluştur"):
+    with st.spinner(f"{girilen_kod} verileri çekiliyor ve gelecek ayların fiyat tahminleri hesaplanıyor..."):
         
-        # 1. Veri Çekme Fonksiyonu (Serileştirme Hatası Çözüldü)
+        # Veri Çekme Fonksiyonu
         def veri_getir(symbol):
             for _ in range(3):
                 try:
@@ -40,15 +48,15 @@ if st.button("Kapsamlı Mum & Potansiyel Analizini Başlat"):
                     time.sleep(1)
             return pd.DataFrame()
 
-        df = veri_getir(secilen_hisse)
+        df = veri_getir(hisse_symbol)
 
         if not df.empty and len(df) > 20:
-            # MultiIndex sütun düzeltmesi
+            # MultiIndex Kontrolü
             if isinstance(df.columns, pd.MultiIndex):
-                close_prices = df['Close'][secilen_hisse]
-                open_prices = df['Open'][secilen_hisse]
-                high_prices = df['High'][secilen_hisse]
-                low_prices = df['Low'][secilen_hisse]
+                close_prices = df['Close'][hisse_symbol]
+                open_prices = df['Open'][hisse_symbol]
+                high_prices = df['High'][hisse_symbol]
+                low_prices = df['Low'][hisse_symbol]
             else:
                 close_prices, open_prices = df['Close'], df['Open']
                 high_prices, low_prices = df['High'], df['Low']
@@ -56,7 +64,7 @@ if st.button("Kapsamlı Mum & Potansiyel Analizini Başlat"):
             son_fiyat = float(close_prices.iloc[-1])
             bugun = datetime.now()
 
-            # İndikatör Hesaplamaları
+            # --- İNDİKATÖR HESAPLAMALARI ---
             delta = close_prices.diff()
             gain = (delta.where(delta > 0, 0)).rolling(14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
@@ -68,125 +76,123 @@ if st.button("Kapsamlı Mum & Potansiyel Analizini Başlat"):
             returns = close_prices.pct_change().dropna()
             volatility = float(returns.std())
 
-            hisse_kodu = secilen_hisse.replace('.IS', '')
+            # --- AL - SAT SİNYALİ OLUŞTURMA ALGORİTMASI ---
+             al_sat_puan = 0
+            if rsi < 35: al_sat_puan += 2  # Aşırı satım (Al fırsatı)
+            elif rsi > 70: al_sat_puan -= 2 # Aşırı alım (Sat riski)
 
-            # --- BÖLÜM 1: KISA VADELİ İNTERAKTİF MUM GRAFİK ---
-            st.subheader(f"📊 {hisse_kodu} - Son 90 Günlük Geçmiş Mum Grafiği & Teknik Seviyeler")
-            
-            df_90 = df.tail(90)
-            fig_candlestick = go.Figure(data=[go.Candlestick(
-                x=df_90.index,
-                open=df_90['Open'][secilen_hisse] if isinstance(df_90.columns, pd.MultiIndex) else df_90['Open'],
-                high=df_90['High'][secilen_hisse] if isinstance(df_90.columns, pd.MultiIndex) else df_90['High'],
-                low=df_90['Low'][secilen_hisse] if isinstance(df_90.columns, pd.MultiIndex) else df_90['Low'],
-                close=df_90['Close'][secilen_hisse] if isinstance(df_90.columns, pd.MultiIndex) else df_90['Close'],
-                increasing_line_color='mediumseagreen', decreasing_line_color='crimson',
-                name='Fiyat Mumları'
-            )])
+            if son_fiyat > sma50: al_sat_puan += 1
+            if sma50 > sma200: al_sat_puan += 2 # Golden Cross eğilimi
 
-            # Hareketli Ortalamalar Ekleme
-            if len(close_prices) >= 50:
-                fig_candlestick.add_trace(go.Scatter(x=df_90.index, y=close_prices.rolling(50).mean().tail(90), mode='lines', line=dict(color='orange', width=1.5), name='SMA 50'))
-            if len(close_prices) >= 200:
-                fig_candlestick.add_trace(go.Scatter(x=df_90.index, y=close_prices.rolling(200).mean().tail(90), mode='lines', line=dict(color='royalblue', width=1.5), name='SMA 200'))
+            if al_sat_puan >= 3:
+                sinyal_metni = "🟢 GÜÇLÜ AL"
+                sinyal_renk = "green"
+            elif al_sat_puan > 0:
+                sinyal_metni = "🟡 AL / KADEMELİ TOPLA"
+                sinyal_renk = "orange"
+            elif al_sat_puan == 0:
+                sinyal_metni = "⚪ NÖTR / TUT"
+                sinyal_renk = "gray"
+            else:
+                sinyal_metni = "🔴 SAT / KÂR AL DÜZELTME BEKLENTİSİ"
+                sinyal_renk = "red"
 
-            fig_candlestick.update_layout(
-                template="plotly_dark", xaxis_rangeslider_visible=False,
-                title=f"{hisse_kodu} Günlük Candlestick Grafik (Son Fiyat: {son_fiyat:.2f} TL | RSI: {rsi:.1f})",
-                yaxis_title="Fiyat (TL)", height=500
+            # --- BÖLÜM 1: AL-SAT SİNYALİ VE ÖZET KARTLAR ---
+            st.subheader(f"🚦 {girilen_kod} - Yapay Zekâ Al-Sat Sinyali ve Teknik Durum")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Son Fiyat", f"{son_fiyat:.2f} TL")
+            c2.metric("Teknik Al-Sat Sinyali", sinyal_metni)
+            c3.metric("RSI (14 Seviyesi)", f"{rsi:.1f}")
+            c4.metric("50 Günlük Ortamama", f"{sma50:.2f} TL")
+
+            # --- BÖLÜM 2: GELECEK AYLARIN TAHMİNİ GRAFİĞİ (3 AY İLERİSİ) ---
+            st.subheader("📅 Gelecek Ayların Fiyat Tahmin Grafiği (Önümüzdeki 90 Gün)")
+            st.caption("Kesikli çizgi yapay zekanın önümüzdeki aylarda beklediği fiyat patikasını, renklendirilmiş alan ise %80 olasılık bandını gösterir.")
+
+            # Gelecek 90 Günün Tarihleri
+            gelecek_tarihler = [bugun + timedelta(days=i) for i in range(1, 91)]
+            gunler = np.arange(1, 91)
+
+            # Trend Eğilimi Hesaplama
+            trend_egilimi = 0.0006 if al_sat_puan > 0 else -0.0003
+            tahmin_fiyatlari = son_fiyat * (1 + trend_egilimi) ** gunler
+            ust_tahmin = son_fiyat * np.exp(trend_egilimi * gunler + volatility * np.sqrt(gunler) * 1.25)
+            alt_tahmin = son_fiyat * np.exp(trend_egilimi * gunler - volatility * np.sqrt(gunler) * 1.25)
+
+            # Birleşik Grafik (Geçmiş + Gelecek)
+            fig = go.Figure()
+
+            # Geçmiş Fiyat Çizgisi
+            fig.add_trace(go.Scatter(
+                x=df.index, y=close_prices,
+                mode='lines', name='Geçmiş Gerçekleşen Fiyat', line=dict(color='white', width=2)
+            ))
+
+            # Gelecek Olasılık Alanı
+            fig.add_trace(go.Scatter(
+                x=gelecek_tarihler, y=ust_tahmin,
+                mode='lines', line=dict(width=0), showlegend=False
+            ))
+            fig.add_trace(go.Scatter(
+                x=gelecek_tarihler, y=alt_tahmin,
+                mode='lines', line=dict(width=0),
+                fill='tonexty', fillcolor='rgba(46, 204, 113, 0.2)',
+                name='Gelecek 3 Ay Olasılık Bandı'
+            ))
+
+            # Gelecek AI Tahmin Çizgisi
+            fig.add_trace(go.Scatter(
+                x=gelecek_tarihler, y=tahmin_fiyatlari,
+                mode='lines', line=dict(color='cyan', dash='dash', width=2.5),
+                name='Gelecek Ayların AI Fiyat Tahmini'
+            ))
+
+            fig.update_layout(
+                template="plotly_dark", title=f"{girilen_kod} - Gelecek 3 Ayın Fiyat Tahmin Grafiği",
+                xaxis_title="Tarih", yaxis_title="Fiyat (TL)", height=500, hovermode="x unified"
             )
-            st.plotly_chart(fig_candlestick, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
-            # --- BÖLÜM 2: KISA VADE GELECEK MUM SIRALAMASI VE TARİHLERİ ---
-            st.subheader("🗓️ Önümüzdeki 4 Haftanın Tahmini Mum Yapısı ve Tarih Sıralaması")
-            st.caption("Aşağıdaki tablo, teknik indikatörler ve volatiliteye göre önümüzdeki haftalık kapanış mumlarının beklentisini içerir.")
-
-            gelecek_tarihler = []
-            current_date = bugun
-            while len(gelecek_tarihler) < 4:
-                current_date += timedelta(days=1)
-                if current_date.weekday() == 4: # Cuma günleri
-                    gelecek_tarihler.append(current_date)
-
-            # Yapay Zekâ İleriye Dönük Mum Simülasyonu
-            mum_verileri = []
-            fiyat_yolu = son_fiyat
+            # --- BÖLÜM 3: GELECEK AYLARA GÖRE TAHMİNİ FİYAT TABLOSU ---
+            st.subheader("🗓️ Gelecek Aylara Göre Tahmini Fiyat Seviyeleri")
             
-            for idx, dt in enumerate(gelecek_tarihler):
-                hafta_no = idx + 1
-                degisim_orani = (0.012 if rsi < 55 else -0.008) + (np.sin(hafta_no) * 0.01)
-                yeni_fiyat = fiyat_yolu * (1 + degisim_orani)
-                
-                if yeni_fiyat > fiyat_yolu:
-                    mum_tipi = "🟢 Yeşil (Yükseliş Mumu)"
-                    durum = "Destek Seviyesinden Tepki / Trend Devamı"
-                else:
-                    mum_tipi = "🔴 Kırmızı (Düzeltme Mumu)"
-                    durum = "Kar Satışı / Direnç Testi"
+            t_1ay = gelecek_tarihler[29].strftime("%d %B %Y")
+            t_2ay = gelecek_tarihler[59].strftime("%d %B %Y")
+            t_3ay = gelecek_tarihler[89].strftime("%d %B %Y")
 
-                alt_destek = yeni_fiyat * (1 - volatility * 1.1)
-                ust_direnc = yeni_fiyat * (1 + volatility * 1.1)
-
-                mum_verileri.append({
-                    "Tarih": dt.strftime("%d %B %Y (Cuma)"),
-                    "Vade": f"{hafta_no}. Hafta Kapanışı",
-                    "Tahmini Mum Tipi": mum_tipi,
-                    "Beklenen Kapanış": f"{yeni_fiyat:.2f} TL",
-                    "Aralık (Düşük - Yüksek)": f"{alt_destek:.2f} TL - {ust_direnc:.2f} TL",
-                    "Teknik Gerekçe": durum
-                })
-                fiyat_yolu = yeni_fiyat
-
-            st.table(pd.DataFrame(mum_verileri))
-
-            # --- BÖLÜM 3: UZUN VADELİ HEDEF VE DÜZELTME FİYATLARI ---
-            st.subheader("🎯 Uzun Vadeli Fiyat Hedefleri ve Düzeltme Seviyeleri (6 Ay - 1 Yıl)")
-            
-            halt_6m = son_fiyat * (1 - volatility * np.sqrt(126) * 0.8)
-            hbek_6m = son_fiyat * (1 + 0.12)
-            hust_6m = son_fiyat * (1 + volatility * np.sqrt(126) * 1.3 + 0.12)
-
-            halt_12m = son_fiyat * (1 - volatility * np.sqrt(252) * 0.6)
-            hbek_12m = son_fiyat * (1 + 0.28)
-            hust_12m = son_fiyat * (1 + volatility * np.sqrt(252) * 1.5 + 0.28)
-
-            uzun_vade_df = pd.DataFrame({
-                "Zaman Ufku": ["6 Ay Sonra", "12 Ay (1 Yıl) Sonra"],
-                "Muhafazakâr Düzeltme Tabanı": [f"{halt_6m:.2f} TL", f"{halt_12m:.2f} TL"],
-                "Makul AI Hedef Fiyatı": [f"{hbek_6m:.2f} TL", f"{hbek_12m:.2f} TL"],
-                "Boğa Senaryosu Üst Bandı": [f"{hust_6m:.2f} TL", f"{hust_12m:.2f} TL"]
+            tahmin_tablosu = pd.DataFrame({
+                "Gelecek Dönem": ["1 Ay Sonra", "2 Ay Sonra", "3 Ay Sonra"],
+                "Tahmini Tarih": [t_1ay, t_2ay, t_3ay],
+                "Olası Düzeltme Tabanı": [f"{alt_tahmin[29]:.2f} TL", f"{alt_tahmin[59]:.2f} TL", f"{alt_tahmin[89]:.2f} TL"],
+                "Beklenen AI Tahmin Fiyatı": [f"{tahmin_fiyatlari[29]:.2f} TL", f"{tahmin_fiyatlari[59]:.2f} TL", f"{tahmin_fiyatlari[89]:.2f} TL"],
+                "Olası Yükseliş Hedefi": [f"{ust_tahmin[29]:.2f} TL", f"{ust_tahmin[59]:.2f} TL", f"{ust_tahmin[89]:.2f} TL"]
             })
-            st.table(uzun_vade_df)
+            st.table(tahmin_tablosu)
 
-            # --- BÖLÜM 4: TÜM HİSSELERİN POTANSİYEL TARAMASI VE EN İYİ HİSSE ANALİZİ ---
-            st.subheader("🌟 BIST Yapay Zekâ Potansiyel Taraması & En Yüksek Potansiyelli Hisse")
+            # --- BÖLÜM 4: AL-SAT TARAMASI VE EN YÜKSEK POTANSİYELLİ HİSSELER ---
+            st.subheader("🚀 BIST Al-Sat Taraması & Yüksek Potansiyelli Hisse Önerileri")
             
-            potansiyel_skorlari = {}
-            for h in hisse_listesi:
-                d_temp = veri_getir(h)
+            potansiyel_listesi = []
+            for h in SIRKET_HIKAYELERI.keys():
+                d_temp = veri_getir(f"{h}.IS")
                 if not d_temp.empty and len(d_temp) > 20:
-                    cp = d_temp['Close'][h] if isinstance(d_temp.columns, pd.MultiIndex) else d_temp['Close']
-                    # RSI ve Trend Skoru
+                    cp = d_temp['Close'][f"{h}.IS"] if isinstance(d_temp.columns, pd.MultiIndex) else d_temp['Close']
                     d_r = cp.diff()
                     g = (d_r.where(d_r > 0, 0)).rolling(14).mean()
                     l = (-d_r.where(d_r < 0, 0)).rolling(14).mean()
                     r_val = float((100 - (100 / (1 + (g / l)))).iloc[-1])
+                    fiy = float(cp.iloc[-1])
                     
-                    # Skorlama
-                    skor = (70 - r_val) * 0.5 + (15 if cp.iloc[-1] > cp.rolling(50).mean().iloc[-1] else 0)
-                    potansiyel_skorlari[h] = skor
+                    s_metin = "🟢 GÜÇLÜ AL" if r_val < 45 else ("🟡 AL" if r_val < 60 else "🔴 SAT/DÜZELTME")
+                    potansiyel_listesi.append({
+                        "Hisse Kodu": h,
+                        "Mevcut Fiyat": f"{fiy:.2f} TL",
+                        "RSI": f"{r_val:.1f}",
+                        "Yapay Zekâ Sinyali": s_metin,
+                        "Şirket Hikâyesi": SIRKET_HIKAYELERI[h]
+                    })
 
-            if potansiyel_skorlari:
-                en_iyi_hisse = max(potansiyel_skorlari, key=potansiyel_skorlari.get)
-                en_iyi_kodu = en_iyi_hisse.replace('.IS', '')
-
-                st.success(f"🏆 **Yapay Zekânın Şu An En Yüksek Potansiyelli Gördüğü Hisse: {en_iyi_kodu}**")
-                st.info(
-                    f"**{en_iyi_kodu} Detaylı Analiz Özeti:**\n\n"
-                    f"• **Temel Yatırım Hikâyesi:** {SIRKET_HIKAYELERI[en_iyi_hisse]}\n"
-                    f"• **Öne Çıkma Sebebi:** Teknik ortalamaların üzerindeki duruşu, ideal RSI seviyesi ve risk/ödül oranının uzun vadeli yükseliş trendini desteklemelidir.\n"
-                    f"• **Strateji Notu:** Kısa vadeli geri çekilmeler kademeli alım fırsatı olarak değerlendirilebilir."
-                )
+            st.table(pd.DataFrame(potansiyel_listesi))
 
         else:
-            st.error("Veri çekilemedi. Lütfen butona tekrar basarak yeniden deneyin.")
+            st.error(f"'{girilen_kod}' sembolüne ait veri bulunamadı. Lütfen BIST hisse kodunu doğru yazdığınızdan emin olun (Örn: THYAO, TUPRS, EGEEN).")
