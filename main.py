@@ -1,3 +1,13 @@
+import io
+import matplotlib.pyplot as plt
+
+# 2. Streamlit butonu temiz ve parametre hatası olmadan çağrılmalı
+st.download_button(
+    label="📥 Tabloyu PNG Olarak İndir (X Formatı)",
+    data=png_buffer,
+    file_name="bist_finansal_ozet.png",
+    mime="image/png",
+)
 import streamlit as st
 import yfinance as yf
 import numpy as np
@@ -525,7 +535,7 @@ st.download_button(
     mime="image/png",st.code(tweet, language="text")
 
 # PNG Tablo Oluşturma Fonksiyonu ve Kodları
-import io
+
 import matplotlib.pyplot as plt
 
 
