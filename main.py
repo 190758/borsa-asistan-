@@ -77,7 +77,7 @@ if st.button("Gelecek Ayların Tahminini ve Al-Sat Sinyalini Oluştur"):
             volatility = float(returns.std())
 
             # --- AL - SAT SİNYALİ OLUŞTURMA ALGORİTMASI ---
-             al_sat_puan = 0
+            al_sat_puan = 0
             if rsi < 35: al_sat_puan += 2  # Aşırı satım (Al fırsatı)
             elif rsi > 70: al_sat_puan -= 2 # Aşırı alım (Sat riski)
 
@@ -86,16 +86,12 @@ if st.button("Gelecek Ayların Tahminini ve Al-Sat Sinyalini Oluştur"):
 
             if al_sat_puan >= 3:
                 sinyal_metni = "🟢 GÜÇLÜ AL"
-                sinyal_renk = "green"
             elif al_sat_puan > 0:
                 sinyal_metni = "🟡 AL / KADEMELİ TOPLA"
-                sinyal_renk = "orange"
             elif al_sat_puan == 0:
                 sinyal_metni = "⚪ NÖTR / TUT"
-                sinyal_renk = "gray"
             else:
                 sinyal_metni = "🔴 SAT / KÂR AL DÜZELTME BEKLENTİSİ"
-                sinyal_renk = "red"
 
             # --- BÖLÜM 1: AL-SAT SİNYALİ VE ÖZET KARTLAR ---
             st.subheader(f"🚦 {girilen_kod} - Yapay Zekâ Al-Sat Sinyali ve Teknik Durum")
@@ -103,7 +99,7 @@ if st.button("Gelecek Ayların Tahminini ve Al-Sat Sinyalini Oluştur"):
             c1.metric("Son Fiyat", f"{son_fiyat:.2f} TL")
             c2.metric("Teknik Al-Sat Sinyali", sinyal_metni)
             c3.metric("RSI (14 Seviyesi)", f"{rsi:.1f}")
-            c4.metric("50 Günlük Ortamama", f"{sma50:.2f} TL")
+            c4.metric("50 Günlük Ortalama", f"{sma50:.2f} TL")
 
             # --- BÖLÜM 2: GELECEK AYLARIN TAHMİNİ GRAFİĞİ (3 AY İLERİSİ) ---
             st.subheader("📅 Gelecek Ayların Fiyat Tahmin Grafiği (Önümüzdeki 90 Gün)")
