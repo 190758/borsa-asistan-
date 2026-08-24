@@ -693,4 +693,4 @@ st.download_button(
     file_name="bist_finansal_ozet.png",
     mime="image/png",
 )
-)
+
