@@ -320,4 +320,123 @@ with tab_bulten:
 • Kâr Al 2: {f_b*1.05:.2f} TL
 
 #BIST100 #Borsa #Hisse #{sec_b}"""
-            st.code(tweet, language="text")
+            st.code(tweet, language="text")import io
+import matplotlib.pyplot as plt
+import pandas as pd
+import streamlit as st
+
+
+def generate_table_image(df: pd.DataFrame, title: str = "Bilanço Özeti") -> io.BytesIO:
+    """Pandas DataFrame verisini X (Twitter) paylaşımına uygun,
+
+    koyu temalı yüksek kaliteli bir PNG görseline dönüştürür.
+    """
+    # X/Twitter için 16:9 oranlı canvas hazırlığı (ör. 12x6.75 inç)
+    fig, ax = plt.subplots(figsize=(12, 6.75), dpi=300)
+    fig.patch.set_facecolor("#15202B")  # X Dark Theme Arka Plan Rengi
+    ax.set_facecolor("#15202B")
+    ax.axis("off")
+
+    # Başlık Ekleme
+    plt.title(
+        title,
+        color="#FFFFFF",
+        fontsize=18,
+        fontweight="bold",
+        pad=20,
+        loc="center",
+    )
+
+    # Tabloyu Oluşturma
+    table = ax.table(
+        cellText=df.values,
+        colLabels=df.columns,
+        cellLoc="center",
+        loc="center",
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(11)
+    table.scale(1.2, 1.8)  # Hücre boyutları ve dikey genişlik
+
+    # Tablo Hücrelerinin Tasarımı (Dark Mode Estetiği)
+    for (row, col), cell in table.get_celld().items():
+        cell.set_edgecolor("#38444D")  # Izgara Çizgisi Rengi
+
+        if row == 0:
+            # Header (Başlık) Satırı
+            cell.set_facecolor("#1DA1F2")  # X Mavi Rengi
+            cell.get_text().set_color("#FFFFFF")
+            cell.get_text().set_weight("bold")
+            cell.get_text().set_fontsize(12)
+        else:
+            # Veri Satırları (Alternatif satır renklendirmesi)
+            bg_color = "#192734" if row % 2 == 0 else "#253341"
+            cell.set_facecolor(bg_color)
+            cell.get_text().set_color("#E1E8ED")
+
+    # Alt Bilgi / Imza (Watermark - Filigran)
+    plt.text(
+        0.98,
+        0.02,
+        "@trader_gandalf | Borsa İstanbul Analiz",
+        transform=ax.transAxes,
+        color="#8899A6",
+        fontsize=10,
+        ha="right",
+        va="bottom",
+        fontstyle="italic",
+    )
+
+    plt.tight_layout()
+
+    # Görseli RAM üzerinde Byte akışına dönüştürme (Diske kaydetmeden doğrudan indirmek için)
+    img_buffer = io.BytesIO()
+    plt.savefig(
+        img_buffer,
+        format="png",
+        bbox_inches="tight",
+        facecolor=fig.get_facecolor(),
+        dpi=300,
+    )
+    img_buffer.seek(0)
+    plt.close(fig)
+
+    return img_buffer
+
+
+# -------------------------------------------------------------------
+# STREAMLIT UYGULAMASI ENTEGRASYON ÖRNEĞİ
+# -------------------------------------------------------------------
+
+st.title("📊 Borsa İstanbul Finansal Tablo Oluşturucu")
+
+# Örnek DataFrame Verisi
+data = {
+    "Hisse": ["FROTO", "ISMEN", "ANHYT", "ARDYZ"],
+    "F/K": [8.4, 6.2, 7.1, 9.5],
+    "PD/DD": [3.1, 2.4, 2.8, 3.8],
+    "Temettü Verimi (%)": ["%6.8", "%8.1", "%5.4", "%1.2"],
+    "Net Kar Büyümesi": ["+%24", "+%45", "+%38", "+%52"],
+}
+df_summary = pd.DataFrame(data)
+
+# Tabloyu Ekran Üzerinde Göster
+st.subheader("Tablo Önizleme")
+st.dataframe(df_summary, use_container_width=True)
+
+# Görsel İndirme Butonu
+st.markdown("---")
+st.subheader("📸 X (Twitter) Paylaşım Görseli")
+
+# PNG Akışını Hazırla
+png_buffer = generate_table_image(
+    df_summary, title="BIST Şirketleri Temel Değerlendirme Tablosu"
+)
+
+st.download_button(
+    label="📥 Tabloyu PNG Olarak İndir (X Formatı)",
+    data=png_buffer,
+    file_name="bist_finansal_ozet.png",
+    mime="image/png",
+)
