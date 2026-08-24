@@ -8,473 +8,69 @@ import plotly.graph_objects as go
 import streamlit as st
 import yfinance as yf
 
-# Sayfa Yapılandırması
+# ---------------------------------------------------------
+# SAYFA VE TEMA YAPILANDIRMASI
+# ---------------------------------------------------------
 st.set_page_config(
-    page_title="BIST Tüm Hisseler - 1 Yıllık Projeksiyon & Analiz",
+    page_title="BIST Temel & Teknik Analiz Terminali | @trader_gandalf",
+    page_icon="📈",
     layout="wide",
 )
 
-st.title("⚡ BIST Tüm Hisseler - 1 Yıllık Fiyat & Grafik Projeksiyonu")
+st.title("🧙‍♂️ BIST Hisseleri Çok Yönlü Analiz & Projeksiyon Terminali")
 st.caption(
-    "Borsa İstanbul'daki tüm hisseler için geçmiş veri analizi, 1 yıl sonraki"
-    " hedef fiyat tahminleri ve X (Twitter) paylaşım görselleri."
+    "Temettü verimi, Graham Değerlemesi, Monte Carlo Simülasyonu ve X"
+    " Görsel Üreteci"
 )
 
 
-# 1. BIST TÜM HİSSELERİ LİSTESİ
+# ---------------------------------------------------------
+# 1. HİSSE LİSTELERİ
+# ---------------------------------------------------------
 @st.cache_data
-def get_bist_all_tickers():
-  tickers = [
-      "AAVST",
-      "ABODV",
-      "ADEL",
-      "ADESE",
-      "AEFES",
-      "AFYON",
-      "AGESA",
-      "AGHOL",
-      "AGROT",
-      "AHGAZ",
-      "AKBNK",
-      "AKCNS",
-      "AKFGY",
-      "AKFYE",
-      "AKGRT",
-      "AKMGY",
-      "AKSA",
-      "AKSEN",
-      "AKSUE",
-      "AKYHO",
-      "ALARK",
-      "ALBRK",
-      "ALCAR",
-      "ALCTL",
-      "ALFAS",
-      "ALGYO",
-      "ALKA",
-      "ALMAD",
-      "ALTNY",
-      "ALVES",
-      "ANELE",
-      "ANGEN",
-      "ANHYT",
-      "ANSGR",
-      "ARCLK",
-      "ARDYZ",
-      "ARENA",
-      "ARSAN",
-      "ARTMS",
-      "ARZUM",
-      "ASELS",
-      "ASGYO",
-      "ASTOR",
-      "ATAGY",
-      "ATAKP",
-      "ATEKS",
-      "ATLAS",
-      "ATSYH",
-      "AVOD",
-      "AVPGY",
-      "AVTUR",
-      "AYCES",
-      "AYDEM",
-      "AYGAZ",
-      "AZTEK",
-      "BAGFS",
-      "BAKAB",
-      "BALAT",
-      "BANVT",
-      "BARMA",
-      "BASGZ",
-      "BAYRK",
-      "BEVT",
-      "BFREN",
-      "BIENP",
-      "BIGCHEFS",
-      "BIMAS",
-      "BINBN",
-      "BIOEN",
-      "BIZIM",
-      "BJKAS",
-      "BLCYT",
-      "BMSCH",
-      "BMSTL",
-      "BNTAS",
-      "BOBET",
-      "BORLS",
-      "BORSK",
-      "BOSSA",
-      "BRKVY",
-      "BRMEN",
-      "BRSAN",
-      "BRSAT",
-      "BRYAT",
-      "BSOKE",
-      "BTCIM",
-      "BUCIM",
-      "BURCE",
-      "BURVA",
-      "BVSAN",
-      "BYDNR",
-      "CANTE",
-      "CASA",
-      "CCHOL",
-      "CCOLA",
-      "CELHA",
-      "CEMAS",
-      "CEMTS",
-      "CMBTN",
-      "CMENT",
-      "CONSE",
-      "COSMO",
-      "CRFSA",
-      "CRDFA",
-      "CUSAN",
-      "CWENE",
-      "DAGHL",
-      "DAGI",
-      "DAPGM",
-      "DARDL",
-      "DGATE",
-      "DGGYO",
-      "DITAS",
-      "DMRGD",
-      "DMSAS",
-      "DNISI",
-      "DOAS",
-      "DOCO",
-      "DOGUB",
-      "DOHOL",
-      "DOKTA",
-      "DURDO",
-      "DYOBY",
-      "DZGYO",
-      "EBEBK",
-      "ECILC",
-      "ECZYT",
-      "EDATA",
-      "EDIP",
-      "EGEEN",
-      "EGGUB",
-      "EGPRO",
-      "EGSER",
-      "EKGYO",
-      "EKOS",
-      "EKSUN",
-      "ELITE",
-      "EMKEL",
-      "ENJSA",
-      "ENKAI",
-      "ENTRA",
-      "EPLAS",
-      "ERCB",
-      "EREGL",
-      "ERHS",
-      "ESCAR",
-      "ESEN",
-      "ETILR",
-      "EUPWR",
-      "EUREK",
-      "EYGYO",
-      "FADE",
-      "FLAP",
-      "FMIZP",
-      "FONET",
-      "FORMT",
-      "FORTE",
-      "FRIGO",
+def get_bist_tickers():
+  top_tickers = [
       "FROTO",
-      "FZLGY",
-      "GARAN",
-      "GARFA",
-      "GEDIK",
-      "GEDZA",
-      "GENIL",
-      "GENTS",
-      "GEREL",
-      "GESAN",
-      "GIPTA",
-      "GLBMD",
-      "GLYHO",
-      "GMTAS",
-      "GOKNR",
-      "GOLTS",
-      "GOODY",
-      "GOZDE",
-      "GRSEL",
-      "GRTHO",
-      "GSDHO",
-      "GSDEO",
-      "GUBRF",
-      "GWIND",
-      "GZTAN",
-      "HALKB",
-      "HATSN",
-      "HDFGS",
-      "HEDEF",
-      "HEKTS",
-      "HKTM",
-      "HLGYO",
-      "HTTBT",
-      "HUBVC",
-      "HUNER",
-      "HURGZ",
-      "ICBCT",
-      "IMASM",
-      "INDES",
-      "INFO",
-      "INGRM",
-      "INTEM",
-      "INVSEO",
-      "INVEO",
-      "INVES",
-      "IPEKE",
-      "ISATR",
-      "ISBTR",
-      "ISCTR",
-      "ISDMR",
-      "ISFIN",
-      "ISGSY",
-      "ISGYO",
-      "ISKPL",
       "ISMEN",
-      "ISSEN",
-      "ITEKS",
-      "ITTFH",
-      "IZINV",
-      "IZMDC",
-      "JANTS",
-      "KAEFD",
-      "KAPLM",
-      "KAREL",
-      "KARSN",
-      "KARTN",
-      "KATMR",
-      "KAYSE",
-      "KCAER",
-      "KCHOL",
-      "KENT",
-      "KRTEK",
-      "KFCOR",
-      "KLKIM",
-      "KLMSN",
-      "KLNMA",
-      "KLRHO",
-      "KLSER",
-      "KLSYN",
-      "KMCPO",
-      "KNCOR",
-      "KONTR",
-      "KONYA",
-      "KORDS",
-      "KOZAL",
-      "KOZAA",
-      "KRPLS",
-      "KRSTL",
-      "KRVGD",
-      "KSTUR",
-      "KTLEV",
-      "KTYGS",
-      "KUTPO",
-      "KGYO",
-      "LIDER",
-      "LILAK",
-      "LINK",
-      "LKMNH",
-      "LMKDC",
-      "LOGOS",
-      "LRERP",
-      "LUKSK",
-      "MAALT",
-      "MACKO",
-      "MAKIM",
-      "MAKTK",
-      "MANAS",
-      "MARKA",
-      "MARTI",
-      "MAVI",
-      "MEDTR",
-      "MEGAP",
-      "MEGMT",
-      "MEPET",
-      "MERCN",
-      "MERKO",
-      "METRO",
-      "METUR",
-      "MHRGY",
-      "MIATK",
-      "MIPAZ",
-      "MMCAS",
-      "MNDRS",
-      "MNDTR",
-      "MOBTL",
-      "MTRKS",
-      "MGROS",
-      "MPARK",
-      "MRGYO",
-      "MRSHL",
-      "MSGYO",
-      "MTRKS",
-      "NATEN",
-      "NETAS",
-      "NIBAS",
-      "NTGAZ",
-      "NTHOL",
-      "NUGYO",
-      "OBAMS",
-      "OBASE",
-      "ODAS",
-      "OFSYM",
-      "ONCSM",
-      "ORGE",
-      "ORMA",
-      "ORTBO",
-      "OTKAR",
-      "OTTO",
-      "OYAKC",
-      "OYAYO",
-      "OYLUM",
-      "OYYAT",
-      "OZKGY",
-      "OZSUB",
-      "PAGYO",
-      "PAMEL",
-      "PAPIL",
-      "PARSN",
-      "PASEU",
-      "PENGD",
-      "PENTX",
-      "PETKM",
-      "PKART",
-      "PGSUS",
-      "PLTUR",
-      "PNLSN",
-      "PNSUT",
-      "POLHO",
-      "POLTK",
-      "PRDGS",
-      "PRKAB",
-      "PRKME",
-      "PRZMA",
-      "PSGYO",
-      "QNBFB",
-      "QNBFL",
-      "QUAGR",
-      "RALYH",
-      "RAYSG",
-      "REEDR",
-      "RGYAS",
-      "RNPOL",
-      "RODRG",
-      "ROYAL",
-      "RTALB",
-      "RUBNS",
-      "RYGYO",
-      "RYSAS",
-      "SAHOL",
-      "SAMAT",
-      "SANEL",
-      "SANFM",
-      "SANKO",
-      "SARKY",
-      "SASA",
-      "SAYAS",
-      "SDTTR",
-      "SEKFK",
-      "SEKUR",
-      "SELEC",
-      "SELVA",
-      "SEYKM",
-      "SILVR",
-      "SISE",
-      "SKBNK",
-      "SKTAS",
-      "SMART",
-      "SMRTG",
-      "SNAAM",
-      "SNICA",
-      "SNKRN",
-      "SNPAM",
-      "SODSN",
-      "SOKM",
-      "SONME",
-      "SRVGY",
-      "SUMAS",
-      "SUNTK",
-      "SURGY",
-      "SUWEN",
-      "TABGD",
-      "TARKM",
-      "TATEN",
-      "TATGD",
-      "TAVHL",
-      "TCELL",
-      "TCKRC",
-      "TEKTU",
-      "TERA",
-      "TETMT",
-      "TEZOL",
-      "THYAO",
-      "TKFEN",
-      "TKNSA",
-      "TLMAN",
-      "TMPOL",
-      "TMSN",
-      "TNZTP",
-      "TOASO",
-      "TRCAS",
-      "TRGYO",
-      "TRILC",
-      "TSKB",
-      "TSPOR",
-      "TTKOM",
-      "TTRAK",
-      "TUCLK",
-      "TUPRS",
-      "TUREX",
-      "TURGG",
-      "TURSG",
-      "UFUK",
-      "ULAS",
-      "ULKER",
-      "UNLU",
-      "USAK",
-      "VAKBN",
-      "VAKFN",
-      "VAKKO",
-      "VANGD",
-      "VBTYZ",
-      "VERTU",
-      "VERUS",
-      "VESBE",
-      "VESTL",
-      "VKFYO",
-      "VKGYO",
-      "VKING",
-      "YAPRK",
-      "YATAS",
-      "YAYLA",
+      "ANHYT",
+      "ARDYZ",
+      "ALTNY",
       "YEOTK",
-      "YGYO",
-      "YKBNK",
-      "YONGA",
-      "YUNSA",
-      "YYLGD",
-      "ZOREN",
-      "ZRGYO",
+      "KCHOL",
+      "SOKM",
+      "AGHOL",
+      "ALARK",
+      "LILAK",
+      "CWENE",
+      "BETAE",
+      "KLYPV",
+      "TEHOL",
+      "THYAO",
+      "ASELS",
+      "SISE",
+      "TUPRS",
+      "EREGL",
+      "BIMAS",
   ]
-  return sorted(list(set(tickers)))
+  all_tickers = sorted(
+      list(
+          set(top_tickers + ["GARAN", "AKBNK", "YKBNK", "SAHOL", "PETKM", "PGSU"])
+      )
+  )
+  return top_tickers, all_tickers
 
 
-# 2. X FORMATI İÇİN PNG GÖRSEL ÜRETİCİ
-def generate_table_image(df, title="BIST Analiz Özeti"):
-  fig, ax = plt.subplots(figsize=(12, 6.75), dpi=300)
-  fig.patch.set_facecolor("#15202B")
+# ---------------------------------------------------------
+# 2. X (TWITTER) FORMATLI TEMALI PNG TABLO ÜRETİCİ
+# ---------------------------------------------------------
+def generate_x_table_image(df, title="BIST Finansal Analiz Tablosu"):
+  fig, ax = plt.subplots(figsize=(12, max(4, len(df) * 0.7)), dpi=300)
+  fig.patch.set_facecolor("#15202B")  # X Koyu Tema Arka Planı
   ax.set_facecolor("#15202B")
   ax.axis("off")
 
   plt.title(
-      title, color="#FFFFFF", fontsize=16, fontweight="bold", pad=20, loc="center"
+      title, color="#FFFFFF", fontsize=15, fontweight="bold", pad=20, loc="center"
   )
 
   table = ax.table(
@@ -487,10 +83,9 @@ def generate_table_image(df, title="BIST Analiz Özeti"):
   for (row, col), cell in table.get_celld().items():
     cell.set_edgecolor("#38444D")
     if row == 0:
-      cell.set_facecolor("#1DA1F2")
+      cell.set_facecolor("#1DA1F2")  # X Mavi Başlık
       cell.get_text().set_color("#FFFFFF")
       cell.get_text().set_weight("bold")
-      cell.get_text().set_fontsize(11)
     else:
       bg_color = "#192734" if row % 2 == 0 else "#253341"
       cell.set_facecolor(bg_color)
@@ -502,14 +97,13 @@ def generate_table_image(df, title="BIST Analiz Özeti"):
       "@trader_gandalf | Borsa İstanbul Analiz",
       transform=ax.transAxes,
       color="#8899A6",
-      fontsize=10,
+      fontsize=9,
       ha="right",
       va="bottom",
       fontstyle="italic",
   )
 
   plt.tight_layout()
-
   img_buffer = io.BytesIO()
   plt.savefig(
       img_buffer,
@@ -523,223 +117,236 @@ def generate_table_image(df, title="BIST Analiz Özeti"):
   return img_buffer
 
 
-# 3. YFINANCE VERİ ÇEKME
+# ---------------------------------------------------------
+# 3. YFINANCE VERİ ÇEKME YARDIMCISI
+# ---------------------------------------------------------
 @st.cache_data(ttl=600)
-def fetch_stock_data(symbol):
-  full_symbol = f"{symbol}.IS" if not symbol.endswith(".IS") else symbol
+def get_stock_data(symbol):
+  ticker_str = f"{symbol}.IS" if not symbol.endswith(".IS") else symbol
   try:
-    df = yf.download(full_symbol, period="2y", interval="1d", progress=False)
-    if not df.empty and len(df) > 30:
-      if isinstance(df.columns, pd.MultiIndex):
-        df = df.xs(full_symbol, level=1, axis=1)
-      return df
+    ticker = yf.Ticker(ticker_str)
+    hist = ticker.history(period="2y")
+    info = ticker.info
+    return hist, info
   except Exception:
-    pass
-  return pd.DataFrame()
+    return pd.DataFrame(), {}
 
 
-# USD KURU ÇEK
-df_usd = fetch_stock_data("USDTRY=X")
-usd_kur = (
+# Dolar Kuru
+df_usd, _ = get_stock_data("USDTRY=X")
+usd_try = (
     float(df_usd["Close"].iloc[-1])
     if (not df_usd.empty and "Close" in df_usd.columns)
     else 34.0
 )
 
-# ARAYÜZ SEKMELERİ
-tab1, tab2 = st.tabs([
-    "📈 Single Hisse 1 Yıllık Projeksiyon & Grafik",
-    "🚀 Toplu Hisse Karşılaştırmalı 1 Yıl Tahmini",
+top_list, all_list = get_bist_tickers()
+
+# ---------------------------------------------------------
+# SEKMELER (TABS)
+# ---------------------------------------------------------
+tab1, tab2, tab3 = st.tabs([
+    "📈 Single Hisse 1 Yıllık Tahmin & Monte Carlo",
+    "📊 Çoklu Temel Analiz & Graham / Temettü Değerlemesi",
+    "🖼️ X Paylaşım Kartı Üreteci",
 ])
 
-all_bist = get_bist_all_tickers()
-
-# SEKME 1: TEK HİSSE DETAYLI PROJEKSİYON
+# ---------------------------------------------------------
+# SEKME 1: TEK HİSSE TAHMİNİ & MONTE CARLO
+# ---------------------------------------------------------
 with tab1:
-  st.header("🔍 Hisse Arama & 1 Yıl Sonraki Fiyat Projeksiyonu")
-
-  col_search, col_custom = st.columns([2, 1])
-  with col_search:
-    selected_ticker = st.selectbox(
-        "BIST Listesinden Hisse Seçin:", all_bist, index=all_bist.index("FROTO")
-    )
-  with col_custom:
-    custom_ticker = st.text_input(
-        "Veya Manuel Hisse Kodu Girin:", value=""
+  st.header("🔍 Hisse Projeksiyonu & Monte Carlo Simülasyonu")
+  col_s1, col_s2 = st.columns([2, 1])
+  with col_s1:
+    selected_stock = st.selectbox("Hisse Seçiniz:", all_list, index=0)
+  with col_s2:
+    custom_stock = st.text_input(
+        "Veya Manuel Kod Girin (Örn: FROTO):"
     ).upper()
 
-  target_ticker = custom_ticker if custom_ticker else selected_ticker
+  target_stock = custom_stock if custom_stock else selected_stock
 
-  if st.button(f"📊 {target_ticker} 1 Yıllık Tahminini Çalıştır"):
-    with st.spinner(f"{target_ticker} geçmiş verileri işleniyor..."):
-      df_stock = fetch_stock_data(target_ticker)
+  if st.button(f"🚀 {target_stock} Projeksiyon Analizini Başlat"):
+    hist, info = get_stock_data(target_stock)
+    if hist.empty:
+      st.error(f"❌ {target_stock} verisi çekilemedi.")
+    else:
+      close = hist["Close"]
+      last_price = float(close.iloc[-1])
+      returns = close.pct_change().dropna()
 
-      if df_stock.empty:
-        st.error(f"❌ {target_ticker} için veri bulunamadı.")
-      else:
-        close_prices = df_stock["Close"]
-        last_price = float(close_prices.iloc[-1])
+      ann_return = returns.mean() * 252
+      ann_vol = returns.std() * np.sqrt(252)
 
-        daily_returns = close_prices.pct_change().dropna()
-        avg_daily_ret = daily_returns.mean()
-        daily_vol = daily_returns.std()
+      future_days = 252
+      t = np.linspace(1 / 252, 1, future_days)
+      base_proj = last_price * np.exp((ann_return - 0.5 * ann_vol**2) * t)
+      bull_proj = last_price * np.exp(
+          ((ann_return + ann_vol) - 0.5 * ann_vol**2) * t
+      )
+      bear_proj = last_price * np.exp(
+          ((ann_return - ann_vol) - 0.5 * ann_vol**2) * t
+      )
 
-        annual_ret = avg_daily_ret * 252
-        annual_vol = daily_vol * np.sqrt(252)
+      dates = [hist.index[-1] + timedelta(days=i) for i in range(1, future_days + 1)]
 
-        last_date = df_stock.index[-1]
-        future_dates = [last_date + timedelta(days=i) for i in range(1, 366)]
+      m1, m2, m3, m4 = st.columns(4)
+      m1.metric("Son Fiyat", f"{last_price:.2f} TL", f"${last_price/usd_try:.2f}")
+      m2.metric(
+          "1 Yıl Baz Hedef",
+          f"{base_proj[-1]:.2f} TL",
+          f"%{((base_proj[-1]/last_price)-1)*100:.1f}",
+      )
+      m3.metric(
+          "İyimser Senaryo (+1σ)",
+          f"{bull_proj[-1]:.2f} TL",
+          f"%{((bull_proj[-1]/last_price)-1)*100:.1f}",
+      )
+      m4.metric(
+          "Kötümser Senaryo (-1σ)",
+          f"{bear_proj[-1]:.2f} TL",
+          f"%{((bear_proj[-1]/last_price)-1)*100:.1f}",
+      )
 
-        t = np.linspace(1 / 252, 1, 365)
-        base_projection = last_price * np.exp(
-            (annual_ret - 0.5 * annual_vol**2) * t
-        )
-        bull_projection = last_price * np.exp(
-            ((annual_ret + annual_vol) - 0.5 * annual_vol**2) * t
-        )
-        bear_projection = last_price * np.exp(
-            ((annual_ret - annual_vol) - 0.5 * annual_vol**2) * t
-        )
+      fig = go.Figure()
+      fig.add_trace(
+          go.Scatter(
+              x=hist.index,
+              y=close,
+              name="Geçmiş Fiyat",
+              line=dict(color="#1DA1F2", width=2),
+          )
+      )
+      fig.add_trace(
+          go.Scatter(
+              x=dates,
+              y=base_proj,
+              name="Baz Projeksiyon",
+              line=dict(color="#FFD700", dash="dash"),
+          )
+      )
+      fig.add_trace(
+          go.Scatter(
+              x=dates,
+              y=bull_proj,
+              name="İyimser (+1σ)",
+              line=dict(color="#00FF7F", dash="dot"),
+          )
+      )
+      fig.add_trace(
+          go.Scatter(
+              x=dates,
+              y=bear_proj,
+              name="Kötümser (-1σ)",
+              line=dict(color="#FF4500", dash="dot"),
+          )
+      )
+      fig.update_layout(
+          title=f"#{target_stock} 1 Yıllık Gelecek Trend Projeksiyonu",
+          template="plotly_dark",
+      )
+      st.plotly_chart(fig, use_container_width=True)
 
-        target_base = base_projection[-1]
-        target_bull = bull_projection[-1]
-        target_bear = bear_projection[-1]
-        target_date_str = future_dates[-1].strftime("%d.%m.%Y")
-
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Güncel Fiyat", f"{last_price:.2f} TL", f"${last_price/usd_kur:.2f}")
-        m2.metric(
-            f"1 Yıl Sonra ({target_date_str}) Baz",
-            f"{target_base:.2f} TL",
-            f"%{((target_base/last_price)-1)*100:.1f}",
-        )
-        m3.metric(
-            "İyimser Hedef (+1σ)",
-            f"{target_bull:.2f} TL",
-            f"%{((target_bull/last_price)-1)*100:.1f}",
-        )
-        m4.metric(
-            "Kötümser Hedef (-1σ)",
-            f"{target_bear:.2f} TL",
-            f"%{((target_bear/last_price)-1)*100:.1f}",
-        )
-
-        fig = go.Figure()
-        fig.add_trace(
-            go.Scatter(
-                x=df_stock.index,
-                y=close_prices,
-                mode="lines",
-                name="Geçmiş Fiyat",
-                line=dict(color="#1DA1F2", width=2),
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=future_dates,
-                y=base_projection,
-                mode="lines",
-                name="Baz Senaryo",
-                line=dict(color="#FFD700", width=2, dash="dash"),
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=future_dates,
-                y=bull_projection,
-                mode="lines",
-                name="İyimser (+1σ)",
-                line=dict(color="#00FF7F", width=1.5, dash="dot"),
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=future_dates,
-                y=bear_projection,
-                mode="lines",
-                name="Kötümser (-1σ)",
-                line=dict(color="#FF4500", width=1.5, dash="dot"),
-            )
-        )
-
-        fig.update_layout(
-            title=f"#{target_ticker} 1 Yıllık Tarih Bazlı Projeksiyon Grafiği",
-            template="plotly_dark",
-            xaxis_title="Tarih",
-            yaxis_title="Fiyat (TL)",
-            height=500,
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        summary_df = pd.DataFrame([{
-            "Hisse": target_ticker,
-            "Mevcut Fiyat": f"{last_price:.2f} TL",
-            "Hedef Tarih": target_date_str,
-            "Kötümser Hedef": f"{target_bear:.2f} TL",
-            "Baz Hedef": f"{target_base:.2f} TL",
-            "İyimser Hedef": f"{target_bull:.2f} TL",
-            "Potansiyel Getiri": f"%{((target_base/last_price)-1)*100:.1f}",
-        }])
-
-        st.dataframe(summary_df, use_container_width=True)
-
-        buf = generate_table_image(
-            summary_df, title=f"#{target_ticker} 1 Yıllık Fiyat Projeksiyon Özeti"
-        )
-        st.download_button(
-            label=f"📥 #{target_ticker} 1 Yıllık Tahmin Tablosunu PNG Olarak İndir",
-            data=buf,
-            file_name=f"{target_ticker}_1_yillik_tahmin.png",
-            mime="image/png",
-        )
-
-# SEKME 2: ÇOKLU HİSSE TAHMİNİ
+# ---------------------------------------------------------
+# SEKME 2: ÇOKLU HİSSE & GRAHAM/TEMETTÜ DEĞERLEMESİ
+# ---------------------------------------------------------
 with tab2:
-  st.header("📊 Çoklu Hisse Karşılaştırmalı 1 Yıllık Tahmin")
+  st.header("💎 Temettü Verimi & Graham Değerleme Tablosu")
   selected_multi = st.multiselect(
-      "Analiz Edilecek Hisseleri Seçin:",
-      all_bist,
-      default=["FROTO", "ISMEN", "THYAO", "ASELS", "KCHOL"],
+      "Karşılaştırılacak Hisseler:",
+      all_list,
+      default=["FROTO", "ISMEN", "ANHYT", "KCHOL", "ALARK"],
   )
 
-  if st.button("🚀 Seçili Hisselerin 1 Yıllık Tahmin Taramasını Başlat"):
-    multi_results = []
-    progress_bar = st.progress(0)
-
+  if st.button("📊 Taramayı Çalıştır"):
+    rows = []
+    progress = st.progress(0)
     for idx, sym in enumerate(selected_multi):
-      df_m = fetch_stock_data(sym)
-      if not df_m.empty and len(df_m) > 30:
-        c_p = df_m["Close"]
-        l_p = float(c_p.iloc[-1])
-        d_ret = c_p.pct_change().dropna()
-        a_ret = d_ret.mean() * 252
-        a_vol = d_ret.std() * np.sqrt(252)
+      hist, info = get_stock_data(sym)
+      if not hist.empty:
+        l_price = float(hist["Close"].iloc[-1])
+        pe = info.get("trailingPE", 0.0) or 0.0
+        pb = info.get("priceToBook", 0.0) or 0.0
+        div_rate = info.get("dividendYield", 0.0) or 0.0
 
-        est_1y = l_p * np.exp(a_ret - 0.5 * a_vol**2)
-        target_date_1y = (df_m.index[-1] + timedelta(days=365)).strftime(
-            "%d.%m.%Y"
+        eps = l_price / pe if pe > 0 else 0.0
+        bvps = l_price / pb if pb > 0 else 0.0
+        graham_fair = (
+            np.sqrt(22.5 * eps * bvps) if (eps > 0 and bvps > 0) else 0.0
         )
 
-        multi_results.append({
+        rows.append({
             "Hisse": sym,
-            "Güncel Fiyat": f"{l_p:.2f} TL",
-            "Hedef Tarih": target_date_1y,
-            "1 Yıl Tahmini Fiyat": f"{est_1y:.2f} TL",
-            "Beklenen Getiri (%)": f"%{((est_1y/l_p)-1)*100:.1f}",
-            "Yıllık Volatillite": f"%{a_vol*100:.1f}",
+            "Fiyat (TL)": f"{l_price:.2f}",
+            "F/K": f"{pe:.2f}" if pe else "N/A",
+            "PD/DD": f"{pb:.2f}" if pb else "N/A",
+            "Temettü Verimi": f"%{div_rate*100:.2f}",
+            "Graham Adil Değer": (
+                f"{graham_fair:.2f} TL" if graham_fair > 0 else "N/A"
+            ),
+            "Iskonto Durumu": (
+                f"%{((graham_fair/l_price)-1)*100:.1f}"
+                if graham_fair > 0
+                else "N/A"
+            ),
         })
+      progress.progress((idx + 1) / len(selected_multi))
 
-      progress_bar.progress((idx + 1) / len(selected_multi))
-
-    res_df = pd.DataFrame(multi_results)
+    res_df = pd.DataFrame(rows)
     st.dataframe(res_df, use_container_width=True)
 
-    buf_multi = generate_table_image(
-        res_df, title="BIST Seçili Hisseler 1 Yıllık Tahmin Özeti"
+    img = generate_x_table_image(
+        res_df, title="BIST Seçili Hisseler Temel & Graham Analizi"
     )
     st.download_button(
-        label="📥 Tüm Karşılaştırma Tablosunu PNG Olarak İndir",
-        data=buf_multi,
-        file_name="bist_coklu_1_yillik_tahminler.png",
+        label="📥 Tablo Görselini İndir (X Paylaşımı İçin)",
+        data=img,
+        file_name="bist_temel_analiz.png",
+        mime="image/png",
+    )
+
+# ---------------------------------------------------------
+# SEKME 3: X PAYLAŞIM KART ÜRETECİ (@trader_gandalf)
+# ---------------------------------------------------------
+with tab3:
+  st.header("🖼️ Özel X Paylaşım Tablosu Üreticisi")
+  st.info(
+      "Bu bölümde X (@trader_gandalf) hesabınızda paylaşmak üzere özel"
+      " verilerle anında tablo üretebilirsiniz."
+  )
+
+  table_title = st.text_input(
+      "Tablo Başlığı:", value="BIST Temettü & Büyüme Hisseleri Takip Listesi"
+  )
+
+  sample_data = pd.DataFrame({
+      "Hisse": ["FROTO", "ISMEN", "ANHYT", "ARDYZ", "ALTNY"],
+      "Kapanış": ["1020.00 TL", "74.50 TL", "112.00 TL", "55.30 TL", "98.40 TL"],
+      "Hedef Fiyat": [
+          "1450.00 TL",
+          "115.00 TL",
+          "160.00 TL",
+          "85.00 TL",
+          "150.00 TL",
+      ],
+      "Potansiyel": ["%+42.1", "%+54.3", "%+42.8", "%+53.7", "%+52.4"],
+      "Strateji": [
+          "Temettü Verimi",
+          "Yüksek Kar",
+          "Büyüme",
+          "Yazılım/Teknoloji",
+          "Savunma Sanayi",
+      ],
+  })
+
+  edited_df = st.data_editor(sample_data, num_rows="dynamic")
+
+  if st.button("🖼️ X Görselini Oluştur"):
+    gen_img = generate_x_table_image(edited_df, title=table_title)
+    st.image(gen_img, caption="X Paylaşım Görsel Önizleme", width=700)
+    st.download_button(
+        label="📥 PNG Olarak İndir (High Quality)",
+        data=gen_img,
+        file_name="trader_gandalf_paylasim.png",
         mime="image/png",
     )
