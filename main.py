@@ -51,7 +51,7 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
         df_usd = veri_getir("USDTRY=X")
 
         if not df.empty and len(df) > 20:
-            # MultiIndex Kontrolü
+            # MultiIndex Kontrolü ve Güvenli Veri Çekimi
             if isinstance(df.columns, pd.MultiIndex):
                 close_prices = df['Close'][hisse_symbol]
                 open_prices = df['Open'][hisse_symbol]
@@ -63,23 +63,21 @@ if st.button("🚀 Günlük Trade Analizini ve Sinyalleri Çalıştır"):
                 high_prices, low_prices = df['High'], df['Low']
                 volume = df['Volume']
 
-           # USD/TRY Kurunu Güvenli Şekilde Çekme ve Dönüştürme
-if not df_usd.empty and 'Close' in df_usd.columns:
-    last_val = df_usd['Close'].iloc[-1]
-    
-    # Eğer gelen değer bir pandas Series ise ilk elemanını al
-    if hasattr(last_val, 'values'):
-        last_val = last_val.values[0]
-        
-    try:
-        usd_kur = float(last_val)
-    except (ValueError, TypeError):
-        usd_kur = 34.0
-else:
-    usd_kur = 34.0
-            son_fiyat = float(close_prices.iloc[-1])
-            son_yuksek = float(high_prices.iloc[-1])
-            son_dusuk = float(low_prices.iloc[-1])
+            # USD Kuru Hesabı
+            if not df_usd.empty and 'Close' in df_usd.columns:
+                val_usd = df_usd['Close'].iloc[-1]
+                usd_kur = float(val_usd.values[0] if hasattr(val_usd, 'values') else val_usd)
+            else:
+                usd_kur = 34.0
+
+            # Fiyatları Güvenli Dönüştürme
+            val_close = close_prices.iloc[-1]
+            val_high = high_prices.iloc[-1]
+            val_low = low_prices.iloc[-1]
+
+            son_fiyat = float(val_close.values[0] if hasattr(val_close, 'values') else val_close)
+            son_yuksek = float(val_high.values[0] if hasattr(val_high, 'values') else val_high)
+            son_dusuk = float(val_low.values[0] if hasattr(val_low, 'values') else val_low)
             son_fiyat_usd = son_fiyat / usd_kur
             bugun = datetime.now()
 
@@ -88,10 +86,15 @@ else:
             gain = (delta.where(delta > 0, 0)).rolling(14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
             rs = gain / loss
-            rsi = float((100 - (100 / (1 + rs))).iloc[-1])
+            rsi_val = (100 - (100 / (1 + rs))).iloc[-1]
+            rsi = float(rsi_val.values[0] if hasattr(rsi_val, 'values') else rsi_val)
 
-            sma50 = float(close_prices.rolling(50).mean().iloc[-1]) if len(close_prices) >= 50 else son_fiyat
-            sma200 = float(close_prices.rolling(200).mean().iloc[-1]) if len(close_prices) >= 200 else son_fiyat
+            sma50_val = close_prices.rolling(50).mean().iloc[-1] if len(close_prices) >= 50 else son_fiyat
+            sma50 = float(sma50_val.values[0] if hasattr(sma50_val, 'values') else sma50_val)
+
+            sma200_val = close_prices.rolling(200).mean().iloc[-1] if len(close_prices) >= 200 else son_fiyat
+            sma200 = float(sma200_val.values[0] if hasattr(sma200_val, 'values') else sma200_val)
+
             volatility = float(close_prices.pct_change().dropna().std())
 
             # ATR (Average True Range) Hesabı
@@ -99,7 +102,8 @@ else:
             tr2 = abs(high_prices - close_prices.shift())
             tr3 = abs(low_prices - close_prices.shift())
             tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-            atr = float(tr.rolling(14).mean().iloc[-1])
+            atr_val = tr.rolling(14).mean().iloc[-1]
+            atr = float(atr_val.values[0] if hasattr(atr_val, 'values') else atr_val)
 
             # Al-Sat Sinyal Puanı
             al_sat_puan = 0
@@ -199,12 +203,14 @@ else:
                 d_temp = veri_getir(f"{h}.IS")
                 if not d_temp.empty and len(d_temp) > 20:
                     cp = d_temp['Close'][f"{h}.IS"] if isinstance(d_temp.columns, pd.MultiIndex) else d_temp['Close']
-                    fiy = float(cp.iloc[-1])
+                    fiy_val = cp.iloc[-1]
+                    fiy = float(fiy_val.values[0] if hasattr(fiy_val, 'values') else fiy_val)
                     
                     # Sıkışma Kontrolü (Bollinger Genişliği)
                     ma20 = cp.rolling(20).mean()
                     std20 = cp.rolling(20).std()
-                    b_width = float(((ma20 + 2*std20 - (ma20 - 2*std20)) / ma20).iloc[-1])
+                    bw_val = ((ma20 + 2*std20 - (ma20 - 2*std20)) / ma20).iloc[-1]
+                    b_width = float(bw_val.values[0] if hasattr(bw_val, 'values') else bw_val)
                     sikisma_durumu = "🔥 Sıkışma Var (Patlayabilir)" if b_width < 0.08 else "Normal"
 
                     potansiyel_listesi.append({
