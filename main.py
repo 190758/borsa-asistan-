@@ -320,7 +320,91 @@ with tab_bulten:
 • Kâr Al 2: {f_b*1.05:.2f} TL
 
 #BIST100 #Borsa #Hisse #{sec_b}"""
-            st.code(tweet, language="text")import io
+           # 1. Tweet metnini gösteren kısım
+st.code(tweet, language="text")
+
+# 2. Görsel oluşturmak için gerekli kütüphaneler (Ayrı satırda olmalı!)
+import io
+import matplotlib.pyplot as plt
+
+
+# 3. PNG Tablo Oluşturucu Fonksiyon
+def generate_table_image(df, title="Bilanço Özeti"):
+    fig, ax = plt.subplots(figsize=(12, 6.75), dpi=300)
+    fig.patch.set_facecolor("#15202B")
+    ax.set_facecolor("#15202B")
+    ax.axis("off")
+
+    plt.title(
+        title,
+        color="#FFFFFF",
+        fontsize=18,
+        fontweight="bold",
+        pad=20,
+        loc="center",
+    )
+
+    table = ax.table(
+        cellText=df.values,
+        colLabels=df.columns,
+        cellLoc="center",
+        loc="center",
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(11)
+    table.scale(1.2, 1.8)
+
+    for (row, col), cell in table.get_celld().items():
+        cell.set_edgecolor("#38444D")
+        if row == 0:
+            cell.set_facecolor("#1DA1F2")
+            cell.get_text().set_color("#FFFFFF")
+            cell.get_text().set_weight("bold")
+            cell.get_text().set_fontsize(12)
+        else:
+            bg_color = "#192734" if row % 2 == 0 else "#253341"
+            cell.set_facecolor(bg_color)
+            cell.get_text().set_color("#E1E8ED")
+
+    plt.text(
+        0.98,
+        0.02,
+        "@trader_gandalf | Borsa İstanbul Analiz",
+        transform=ax.transAxes,
+        color="#8899A6",
+        fontsize=10,
+        ha="right",
+        va="bottom",
+        fontstyle="italic",
+    )
+
+    plt.tight_layout()
+
+    img_buffer = io.BytesIO()
+    plt.savefig(
+        img_buffer,
+        format="png",
+        bbox_inches="tight",
+        facecolor=fig.get_facecolor(),
+        dpi=300,
+    )
+    img_buffer.seek(0)
+    plt.close(fig)
+
+    return img_buffer
+
+
+# 4. İndirme Butonu
+png_buffer = generate_table_image(
+    df_summary, title="BIST Şirketleri Temel Değerlendirme Tablosu"
+)
+
+st.download_button(
+    label="📥 Tabloyu PNG Olarak İndir (X Formatı)",
+    data=png_buffer,
+    file_name="bist_finansal_ozet.png",
+    mime="image/png",
+)
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
