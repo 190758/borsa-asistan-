@@ -74,15 +74,14 @@ def get_bist_tickers():
 
 
 # ---------------------------------------------------------
-# 2. X (TWITTER) FORMATLI TEMALI PNG TABLO ÜRETİCİ (GÜVENLİ)
+# 2. X (TWITTER) FORMATLI TEMALI PNG TABLO ÜRETİCİ
 # ---------------------------------------------------------
 def generate_x_table_image(df, title="BIST Finansal Analiz Tablosu"):
-  # Boş DataFrame gelirse çökmesini önlemek için kontrol
   if df.empty:
     df = pd.DataFrame({"Uyarı": ["Gösterilecek Veri Bulunamadı"]})
 
   fig, ax = plt.subplots(figsize=(12, max(4, len(df) * 0.7)), dpi=300)
-  fig.patch.set_facecolor("#15202B")  # X Koyu Tema Arka Planı
+  fig.patch.set_facecolor("#15202B")
   ax.set_facecolor("#15202B")
   ax.axis("off")
 
@@ -100,7 +99,7 @@ def generate_x_table_image(df, title="BIST Finansal Analiz Tablosu"):
   for (row, col), cell in table.get_celld().items():
     cell.set_edgecolor("#38444D")
     if row == 0:
-      cell.set_facecolor("#1DA1F2")  # X Mavi Başlık
+      cell.set_facecolor("#1DA1F2")
       cell.get_text().set_color("#FFFFFF")
       cell.get_text().set_weight("bold")
     else:
@@ -135,21 +134,38 @@ def generate_x_table_image(df, title="BIST Finansal Analiz Tablosu"):
 
 
 # ---------------------------------------------------------
-# 3. YFINANCE VERİ ÇEKME YARDIMCISI
+# 3. YFINANCE VERİ ÇEKME YARDIMCISI (GÜÇLENDİRİLMİŞ & HATA KORUMALI)
 # ---------------------------------------------------------
 @st.cache_data(ttl=600)
 def get_stock_data(symbol):
-  ticker_str = f"{symbol}.IS" if not symbol.endswith(".IS") else symbol
+  clean_symbol = symbol.replace(".IS", "").strip().upper()
+  ticker_str = f"{clean_symbol}.IS"
+
+  # Yöntem 1: yf.download
   try:
-    ticker = yf.Ticker(ticker_str)
-    hist = ticker.history(period="2y")
-    info = ticker.info
-    return hist, info
+    df = yf.download(ticker_str, period="2y", interval="1d", progress=False)
+    if not df.empty and len(df) > 10:
+      if isinstance(df.columns, pd.MultiIndex):
+        df = df.xs(ticker_str, level=1, axis=1)
+      t = yf.Ticker(ticker_str)
+      info = t.info if hasattr(t, "info") else {}
+      return df, info
   except Exception:
-    return pd.DataFrame(), {}
+    pass
+
+  # Yöntem 2: yf.Ticker.history (Yedek)
+  try:
+    t = yf.Ticker(ticker_str)
+    hist = t.history(period="2y")
+    if not hist.empty and len(hist) > 10:
+      return hist, t.info
+  except Exception:
+    pass
+
+  return pd.DataFrame(), {}
 
 
-# Dolar Kuru Çekimi
+# Dolar Kuru
 df_usd, _ = get_stock_data("USDTRY=X")
 usd_try = (
     float(df_usd["Close"].iloc[-1])
@@ -178,7 +194,7 @@ with tab1:
     selected_stock = st.selectbox("Hisse Seçiniz:", all_list, index=0)
   with col_s2:
     custom_stock = st.text_input(
-        "Veya Manuel Kod Girin (Örn: FROTO):"
+        "Veya Manuel Kod Girin (Örn: AGHOL):"
     ).upper()
 
   target_stock = custom_stock if custom_stock else selected_stock
@@ -187,8 +203,8 @@ with tab1:
     hist, info = get_stock_data(target_stock)
     if hist.empty:
       st.error(
-          f"❌ {target_stock} verisi çekilemedi. Şirket kodunun doğruluğunu"
-          " kontrol edin."
+          f"❌ {target_stock} verisi çekilemedi. Bağlantınızı veya hisse"
+          " kodunu kontrol edin."
       )
     else:
       close = hist["Close"]
@@ -275,7 +291,7 @@ with tab2:
   selected_multi = st.multiselect(
       "Karşılaştırılacak Hisseler:",
       all_list,
-      default=["FROTO", "ISMEN", "ANHYT", "KCHOL", "ALARK"],
+      default=["FROTO", "ISMEN", "ANHYT", "AGHOL", "ALARK"],
   )
 
   if st.button("📊 Taramayı Çalıştır"):
@@ -298,8 +314,8 @@ with tab2:
         rows.append({
             "Hisse": sym,
             "Fiyat (TL)": f"{l_price:.2f}",
-            "F/K": f"{pe:.2f}" if pe else "N/A",
-            "PD/DD": f"{pb:.2f}" if pb else "N/A",
+            "F/K": f"{pe:.2f}" if pe > 0 else "N/A",
+            "PD/DD": f"{pb:.2f}" if pb > 0 else "N/A",
             "Temettü Verimi": f"%{div_rate*100:.2f}",
             "Graham Adil Değer": (
                 f"{graham_fair:.2f} TL" if graham_fair > 0 else "N/A"
@@ -314,7 +330,6 @@ with tab2:
 
     res_df = pd.DataFrame(rows)
 
-    # Güvenli Kontrol: Sadece veri varsa tablo oluşturur
     if not res_df.empty:
       st.dataframe(res_df, use_container_width=True)
 
@@ -329,8 +344,7 @@ with tab2:
       )
     else:
       st.warning(
-          "⚠️ Seçilen hisseler için yfinance üzerinden veri çekilemedi. Lütfen"
-          " bağlantınızı kontrol edin veya farklı hisseler deneyin."
+          "⚠️ Seçilen hisseler için veri çekilemedi. Lütfen tekrar deneyin."
       )
 
 # ---------------------------------------------------------
@@ -348,20 +362,20 @@ with tab3:
   )
 
   sample_data = pd.DataFrame({
-      "Hisse": ["FROTO", "ISMEN", "ANHYT", "ARDYZ", "ALTNY"],
-      "Kapanış": ["1020.00 TL", "74.50 TL", "112.00 TL", "55.30 TL", "98.40 TL"],
+      "Hisse": ["FROTO", "ISMEN", "AGHOL", "ARDYZ", "ALTNY"],
+      "Kapanış": ["1020.00 TL", "74.50 TL", "310.00 TL", "55.30 TL", "98.40 TL"],
       "Hedef Fiyat": [
           "1450.00 TL",
           "115.00 TL",
-          "160.00 TL",
+          "450.00 TL",
           "85.00 TL",
           "150.00 TL",
       ],
-      "Potansiyel": ["%+42.1", "%+54.3", "%+42.8", "%+53.7", "%+52.4"],
+      "Potansiyel": ["%+42.1", "%+54.3", "%+45.1", "%+53.7", "%+52.4"],
       "Strateji": [
           "Temettü Verimi",
           "Yüksek Kar",
-          "Büyüme",
+          "Holding / Büyüme",
           "Yazılım/Teknoloji",
           "Savunma Sanayi",
       ],
