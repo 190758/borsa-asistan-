@@ -535,7 +535,7 @@ st.download_button(
     mime="image/png",st.code(tweet, language="text")
 
 # PNG Tablo Oluşturma Fonksiyonu ve Kodları
-
+)
 def generate_table_image(df, title="Bilanço Özeti"):
     fig, ax = plt.subplots(figsize=(12, 6.75), dpi=300)
     fig.patch.set_facecolor("#15202B")
