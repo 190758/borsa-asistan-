@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 import io
+import re
 import time
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 import yfinance as yf
 
@@ -134,31 +136,60 @@ def generate_x_table_image(df, title="BIST Finansal Analiz Tablosu"):
 
 
 # ---------------------------------------------------------
-# 3. YFINANCE VERİ ÇEKME YARDIMCISI (GÜÇLENDİRİLMİŞ & HATA KORUMALI)
+# 3. KESİNTİSİZ VERİ ÇEKME MOTORU (ENGEL AŞICI)
 # ---------------------------------------------------------
 @st.cache_data(ttl=600)
 def get_stock_data(symbol):
   clean_symbol = symbol.replace(".IS", "").strip().upper()
   ticker_str = f"{clean_symbol}.IS"
 
-  # Yöntem 1: yf.download
+  headers = {
+      "User-Agent": (
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          " (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      )
+  }
+
+  # Katman 1: Direct Yahoo Chart Endpoint
+  try:
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker_str}?range=2y&interval=1d"
+    resp = requests.get(url, headers=headers, timeout=5)
+    if resp.status_code == 200:
+      data = resp.json()
+      result = data["chart"]["result"][0]
+      timestamps = result["timestamp"]
+      quotes = result["indicators"]["quote"][0]
+
+      df = pd.DataFrame({
+          "Open": quotes.get("open"),
+          "High": quotes.get("high"),
+          "Low": quotes.get("low"),
+          "Close": quotes.get("close"),
+          "Volume": quotes.get("volume"),
+      })
+      df.index = pd.to_datetime(timestamps, unit="s")
+      df = df.dropna(subset=["Close"])
+
+      # Meta bilgilerini al
+      meta = result.get("meta", {})
+      info = {
+          "trailingPE": meta.get("trailingPE", 0.0),
+          "priceToBook": meta.get("priceToBook", 0.0),
+          "dividendYield": meta.get("dividendYield", 0.0),
+      }
+      if not df.empty and len(df) > 10:
+        return df, info
+  except Exception:
+    pass
+
+  # Katman 2: yfinance Kütüphanesi
   try:
     df = yf.download(ticker_str, period="2y", interval="1d", progress=False)
     if not df.empty and len(df) > 10:
       if isinstance(df.columns, pd.MultiIndex):
         df = df.xs(ticker_str, level=1, axis=1)
       t = yf.Ticker(ticker_str)
-      info = t.info if hasattr(t, "info") else {}
-      return df, info
-  except Exception:
-    pass
-
-  # Yöntem 2: yf.Ticker.history (Yedek)
-  try:
-    t = yf.Ticker(ticker_str)
-    hist = t.history(period="2y")
-    if not hist.empty and len(hist) > 10:
-      return hist, t.info
+      return df, getattr(t, "info", {})
   except Exception:
     pass
 
@@ -203,7 +234,7 @@ with tab1:
     hist, info = get_stock_data(target_stock)
     if hist.empty:
       st.error(
-          f"❌ {target_stock} verisi çekilemedi. Bağlantınızı veya hisse"
+          f"❌ {target_stock} verisi çekilemedi. Lütfen bağlantınızı veya hisse"
           " kodunu kontrol edin."
       )
     else:
@@ -211,8 +242,12 @@ with tab1:
       last_price = float(close.iloc[-1])
       returns = close.pct_change().dropna()
 
-      ann_return = returns.mean() * 252
-      ann_vol = returns.std() * np.sqrt(252)
+      ann_return = returns.mean() * 252 if len(returns) > 0 else 0.15
+      ann_vol = (
+          returns.std() * np.sqrt(252)
+          if (len(returns) > 0 and returns.std() > 0)
+          else 0.30
+      )
 
       future_days = 252
       t = np.linspace(1 / 252, 1, future_days)
@@ -326,6 +361,7 @@ with tab2:
                 else "N/A"
             ),
         })
+      time.sleep(0.05)
       progress.progress((idx + 1) / len(selected_multi))
 
     res_df = pd.DataFrame(rows)
